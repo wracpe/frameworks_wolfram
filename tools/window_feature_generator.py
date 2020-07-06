@@ -12,7 +12,7 @@ class WindowFeatureGenerator(object):
 
     @classmethod
     def run(cls, df: DataFrame) -> DataFrame:
-        cls._df = df
+        cls._df = df.copy()
 
         for column in [sett.predictor, sett.predicate]:
             cls._add_features(column)
