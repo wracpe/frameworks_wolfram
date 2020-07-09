@@ -19,6 +19,7 @@ class Project(object):
     def _calc_wells(self):
         self.wells = []
         for well_name, df in self.dfs.items():
+            print(well_name)
             well = Well(well_name, df)
             self.wells.append(well)
         self.y_dev = self._calc_average_relative_deviations(self.wells)

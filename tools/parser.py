@@ -39,20 +39,23 @@ class Parser(object):
         well_names.remove('7')
         well_names.remove('7Г')
         well_names.remove('7Г2')
+        well_names.remove('68Р')
+
+        # well_names = ['4']
+
+        imp_mean = IterativeImputer(max_iter=1000, random_state=0)
+        features = ['Давление забойное от Pпр',
+                    'Давление на приеме насоса',
+                    'Давление забойное от Hд',
+                    'Давление затрубное (ТМ)\t']
+
+        x = cls._df[features].copy()
+        x = imp_mean.fit_transform(x)
+        cls._df[features] = x
 
         cls._dfs = dict.fromkeys(well_names)
         for well_name in well_names:
             df_well = cls._df[cls._df['Скв'] == well_name]
-
-            imp_mean = IterativeImputer(max_iter=1000, random_state=0)
-            features = ['Давление забойное от Pпр',
-                        'Давление на приеме насоса',
-                        'Давление забойное от Hд',
-                        'Давление затрубное (ТМ)\t']
-            x = df_well[features].copy()
-            x = imp_mean.fit_transform(x)
-            df_well[features] = x.copy()
-
             df_well = df_well[sett.usable_columns]
             df_well = cls._prepare_df(df_well)
             cls._dfs[well_name] = df_well
