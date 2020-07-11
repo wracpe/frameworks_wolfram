@@ -14,24 +14,29 @@ def get_param_grid(model_name: str) -> Tuple:
     param_grid = None
 
     if model_name == 'eln':
-        model = ElasticNet()
-        alpha_ = np.arange(0, 11, 1)
-        l1_ratio_ = np.arange(0, 1.1, 0.1)
-        param_grid = [{'alpha': x[0], 'l1_ratio': x[1]} for x in product(alpha_, l1_ratio_)]
+        model = ElasticNet(random_state=100)
+        alpha = range(0, 35, 5)
+        l1_ratio = [0.5]
+        param_grid = [{'alpha': x[0], 'l1_ratio': x[1]} for x in product(alpha, l1_ratio)]
 
     if model_name == 'xgb':
-        model = XGBRegressor(booster='gbtree', objective='reg:squarederror')
-        eta_ = np.arange(0.7, 1.1, 0.1)
-        lambda_ = np.arange(8, 11, 1)
-        alpha_ = np.arange(0.7, 1.1, 0.1)
-        param_grid = [{'eta': x[0], 'lambda': x[1], 'alpha': x[2]} for x in product(eta_, lambda_, alpha_)]
+        model = XGBRegressor(learning_rate=0.5,
+                             objective='reg:squarederror',
+                             booster='gbtree',
+                             colsample_bytree=0.5,
+                             reg_alpha=5,
+                             reg_lambda=5)
+        n_estimators = range(20, 60, 10)
+        # reg_lambda = [5]
+        # reg_alpha = [5]
+        param_grid = [{'n_estimators': x} for x in n_estimators]
 
     return model, param_grid
 
 
 class Estimator(object):
 
-    model, param_grid = get_param_grid(model_name='eln')
+    model, param_grid = get_param_grid(model_name='xgb')
     _x_train: DataFrame
     _x_test: DataFrame
     _y_train: Series

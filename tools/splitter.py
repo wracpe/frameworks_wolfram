@@ -6,7 +6,7 @@ from pandas import DataFrame
 class Splitter(object):
 
     _fold_samples_number = sett.forecast_days_number
-    _r = 3
+    _r = 4
 
     def __init__(self, df: DataFrame):
         self.df = df
