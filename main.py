@@ -9,6 +9,5 @@ warnings.filterwarnings('ignore')
 dfs = Parser.parse()
 project = Project(dfs)
 for well in project.wells:
-    print(well.name)
     Plotter.create_well_plot(well)
 Plotter.create_project_plot(project)

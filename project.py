@@ -10,7 +10,6 @@ class Project(object):
 
     def __init__(self, dfs: Dict[str, DataFrame]):
         self.dfs = dfs
-
         self.wells: List[Well]
         self.y_dev: Series
 

@@ -6,6 +6,7 @@ from pandas import DataFrame
 class Splitter(object):
 
     _fold_samples_number = sett.forecast_days_number
+    _r = 3
 
     def __init__(self, df: DataFrame):
         self.df = df
@@ -27,10 +28,11 @@ class Splitter(object):
         self._k_frac = k - int(k)
 
     def _create_train_test_pair(self):
-        for i in range(2, self._k_int + 1):
-            samples_number = self._fold_samples_number * i
-            df_train = self.df.head(samples_number - self._fold_samples_number)
-            df_test = self.df.tail(self._fold_samples_number)
+        for i in range(self._r, self._k_int + 1):
+            samples_number = self._fold_samples_number * self._r
+            df_k = self.df.head(samples_number)
+            df_train = df_k.head(samples_number - self._fold_samples_number)
+            df_test = df_k.tail(self._fold_samples_number)
             self.train_test_pairs.append({'train': df_train, 'test': df_test})
 
     def _check_last_pair_existing(self):

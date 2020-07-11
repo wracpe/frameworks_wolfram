@@ -39,9 +39,9 @@ class Parser(object):
         well_names.remove('7')
         well_names.remove('7Г')
         well_names.remove('7Г2')
-        well_names.remove('68Р')
+        # well_names.remove('68Р')
 
-        # well_names = ['4']
+        well_names = ['52']
 
         imp_mean = IterativeImputer(max_iter=1000, random_state=0)
         features = ['Давление забойное от Pпр',

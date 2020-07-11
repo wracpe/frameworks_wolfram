@@ -17,7 +17,7 @@ class Plotter(object):
         ax = axs[0]
         well.df.plot(grid=True, ax=ax)
         well.y_adap.plot(label=f'{sett.predicate}_адаптация', ax=ax)
-        well.y_fore.plot(label=f'{sett.predicate}_прогноз', ax=ax)
+        well.y_pred.plot(label=f'{sett.predicate}_прогноз', ax=ax)
         ax = axs[1]
         well.y_dev.plot(label='Отн. отклонение дебита жидкости от факта, %', ax=ax)
         plt.grid()
