@@ -3,22 +3,27 @@ import pandas as pd
 import settings as sett
 
 from pandas import DataFrame
-from typing import Dict
-
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
+from typing import Dict, List
+
+from tools.window_feature_generator import WindowFeatureGenerator
 
 
 class Parser(object):
 
     _df: DataFrame
-    _dfs: Dict[str, DataFrame]
+    _df_well: DataFrame
+    _start_row: DataFrame
+    _well_data: Dict[str, Dict]
+    _well_names: List[str]
 
     @classmethod
-    def parse(cls) -> Dict[str, DataFrame]:
+    def parse(cls) -> Dict[str, Dict]:
         cls._read_df()
-        cls._split_df_by_wells()
-        return cls._dfs
+        cls._fill_missing_values_in_predictor()
+        cls._prepare_train_test_data_by_wells()
+        return cls._well_data
 
     @classmethod
     def _read_df(cls):
@@ -30,40 +35,79 @@ class Parser(object):
                               dayfirst=True,
                               encoding='windows-1251')
 
-    @classmethod
-    def _split_df_by_wells(cls):
-        well_names = cls._df['Скв'].unique().tolist()
+        cls._well_names = cls._df['Скв'].unique().tolist()
 
-        # TODO: Rows 31-33 only for Otdelnoe filed calculation.
+        # TODO: Rows 39-42 only for Otdelnoe filed calculation.
         #  Delete or change these rows for calculation other filed.
-        well_names.remove('7')
-        well_names.remove('7Г')
-        well_names.remove('7Г2')
-        # well_names.remove('68Р')
+        cls._well_names.remove('7')
+        cls._well_names.remove('7Г')
+        cls._well_names.remove('7Г2')
+        # cls._well_names.remove('55')
+        # cls._well_names.remove('32')
+        cls._well_names = ['55']
 
-        # well_names = ['52']
-
-        imp_mean = IterativeImputer(max_iter=1000, random_state=0)
+    @classmethod
+    def _fill_missing_values_in_predictor(cls):
+        imp_mean = IterativeImputer(max_iter=1000, initial_strategy='median', random_state=1)
         features = ['Давление забойное от Pпр',
                     'Давление на приеме насоса',
                     'Давление забойное от Hд',
-                    'Давление затрубное (ТМ)\t']
+                    'Удельный расход электроэнергии с контроллера']
 
         x = cls._df[features].copy()
         x = imp_mean.fit_transform(x)
         cls._df[features] = x
 
-        cls._dfs = dict.fromkeys(well_names)
-        for well_name in well_names:
-            df_well = cls._df[cls._df['Скв'] == well_name]
-            df_well = df_well[sett.usable_columns]
-            df_well = cls._prepare_df(df_well)
-            cls._dfs[well_name] = df_well
+    @classmethod
+    def _prepare_train_test_data_by_wells(cls):
+        cls._well_data = dict()
+        for well_name in cls._well_names:
+            cls._df_well = cls._df[cls._df['Скв'] == well_name]
+            cls._df_well = cls._df_well[sett.usable_columns]
+            cls._prepare_df_well()
+            data = cls._split_df_well()
+            data['start_row'] = cls._start_row
+            cls._well_data[well_name] = data
+
+    @classmethod
+    def _prepare_df_well(cls):
+        cls._df_well.set_index(keys='Дата', inplace=True, verify_integrity=True)
+        cls._df_well = cls._df_well.astype(dtype='float64')
+        cls._df_well.interpolate(method='linear', axis='index', inplace=True, limit_direction='forward')
+        cls._df_well.dropna(inplace=True)
+
+        cls._start_row = cls._df_well.iloc[[0]]
+
+        # df_1 = cls._df_well.diff()
+        # df_2 = cls._df_well.shift()
+        # cls._df_well = df_1.divide(df_2)
+        # cls._df_well.dropna(inplace=True)
+
+        cls._df_well = WindowFeatureGenerator.run(cls._df_well)
+
+        # target_series = cls._df_well[sett.predicate]
+        # feature_correlation_series = abs(cls._df_well.corrwith(target_series, drop=True, method='pearson'))
+        # feature_correlation_series.sort_values(ascending=False, inplace=True)
+        # pass
+
+    @classmethod
+    def _split_df_well(cls):
+        data = dict()
+        total_samples_number = len(cls._df_well.index)
+
+        # df = cls._df_well.head(total_samples_number - 90)
+        # cls._df_well = df.copy()
+        #
+        # total_samples_number = len(cls._df_well.index)
+
+        df_train = cls._df_well.head(total_samples_number - sett.forecast_days_number)
+        df_test = cls._df_well.tail(sett.forecast_days_number)
+        data['x_train'], data['y_train'] = cls._divide_x_y(df_train)
+        data['x_test'], data['y_test'] = cls._divide_x_y(df_test)
+        return data
 
     @staticmethod
-    def _prepare_df(df: DataFrame) -> DataFrame:
-        df.set_index(keys='Дата', inplace=True, verify_integrity=True)
-        df = df.astype(dtype='float64')
-        df.interpolate(method='linear', axis='index', inplace=True, limit_direction='forward')
-        df.dropna(axis='index', how='any', inplace=True)
-        return df
+    def _divide_x_y(df):
+        x = df.drop(columns=sett.predicate)
+        y = df[sett.predicate]
+        return x, y

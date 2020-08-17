@@ -1,75 +1,67 @@
+from itertools import product
+
 import numpy as np
 
 import settings as sett
 
-from itertools import product
 from pandas import Series, DataFrame
-from sklearn.linear_model import ElasticNet
-from typing import Tuple
+from sklearn.linear_model import LinearRegression, ElasticNet
 from xgboost import XGBRegressor
-
-
-def get_param_grid(model_name: str) -> Tuple:
-    model = None
-    param_grid = None
-
-    if model_name == 'eln':
-        model = ElasticNet(random_state=100)
-        alpha = range(0, 35, 5)
-        l1_ratio = [0.5]
-        param_grid = [{'alpha': x[0], 'l1_ratio': x[1]} for x in product(alpha, l1_ratio)]
-
-    if model_name == 'xgb':
-        model = XGBRegressor(learning_rate=0.5,
-                             objective='reg:squarederror',
-                             booster='gbtree',
-                             colsample_bytree=0.5,
-                             reg_alpha=5,
-                             reg_lambda=5)
-        n_estimators = range(20, 60, 10)
-        # reg_lambda = [5]
-        # reg_alpha = [5]
-        param_grid = [{'n_estimators': x} for x in n_estimators]
-
-    return model, param_grid
 
 
 class Estimator(object):
 
-    model, param_grid = get_param_grid(model_name='xgb')
-    _x_train: DataFrame
-    _x_test: DataFrame
-    _y_train: Series
-    _y_pred: Series
+    def __init__(self, model_name: str):
+        if model_name == 'elastic_net':
+            self.model = ElasticNet(alpha=1,
+                                    l1_ratio=0.8,
+                                    precompute=True,
+                                    tol=1e-3,
+                                    random_state=1)
 
-    @classmethod
-    def make_forecast(cls, x_train, x_test, y_train, in_out: str = 'out', **params):
-        cls._x_train = x_train
-        cls._x_test = x_test
-        cls._y_train = y_train
+            alpha = np.arange(0.2, 1.2, 0.2)
+            l1_ratio = np.arange(0.2, 1, 0.2)
+            self.param_grid = [{'alpha': x[0],
+                                'l1_ratio': x[1]} for x in product(alpha, l1_ratio)]
 
-        cls.model.set_params(**params)
-        cls.model.fit(cls._x_train, cls._y_train)
-        if in_out == 'in':
-            cls._predict_in_samples()
-        if in_out == 'out':
-            cls._predict_out_samples()
-        return cls._y_pred
+        if model_name == 'xgb':
+            self.model = XGBRegressor(n_estimators=50,
+                                      max_depth=5,
+                                      learning_rate=0.5,
+                                      verbosity=0,
+                                      objective='reg:squarederror',
+                                      booster='gbtree',
+                                      n_jobs=8,
+                                      colsample_bytree=0.5,
+                                      reg_alpha=0.1,
+                                      reg_lambda=0.1,
+                                      random_state=1)
 
-    @classmethod
-    def _predict_in_samples(cls):
-        y_pred = cls.model.predict(cls._x_train)
-        cls._y_pred = Series(y_pred, cls._x_train.index)
+            n_estimators = np.arange(10, 60, 10)
+            reg_alpha = [0.1, 0.5, 1, 10, 20]
+            reg_lambda = [0.1, 0.5, 1, 10, 20]
+            learning_rate = [0.1, 0.4, 0.7, 0.9, 1]
+            self.param_grid = [{'n_estimators': x[0],
+                                'reg_alpha': x[1],
+                                'reg_lambda': x[2],
+                                'learning_rate': x[3]} for x in product(n_estimators, reg_alpha, reg_lambda, learning_rate)]
 
-    @classmethod
-    def _predict_out_samples(cls):
+    def fit(self, x_train: DataFrame, y_train: Series):
+        self.model.fit(x_train, y_train)
+
+    def predict_by_test(self, x_test: DataFrame):
+        y_pred = self.model.predict(x_test)
+        y_pred = Series(y_pred, x_test.index)
+        return y_pred
+
+    def predict_by_train_test(self, y_train: Series, x_test: DataFrame):
         y_pred = list()
-        y_stat = cls._y_train.to_list()
-        prediction_length = len(cls._x_test.index)
+        y_stat = y_train.to_list()
+        prediction_length = len(x_test.index)
 
         for day in range(prediction_length):
-            x = cls._x_test.iloc[[day]]
-            y = cls.model.predict(x)[0]
+            x = x_test.iloc[[day]]
+            y = self.model.predict(x)[0]
             y_pred.append(y)
             y_stat.append(y)
             if day == prediction_length - 1:
@@ -78,9 +70,10 @@ class Estimator(object):
             for ws in sett.window_sizes:
                 parameter_name = sett.predicate + f'_{ws}'
                 window = y_stat[-ws:]
-                cls._x_test[f'{parameter_name}_median'].iloc[day + 1] = np.median(window)
-                cls._x_test[f'{parameter_name}_var'].iloc[day + 1] = np.var(window)
+                # x_test[f'{parameter_name}_median'].iloc[day + 1] = np.median(window)
+                # x_test[f'{parameter_name}_var'].iloc[day + 1] = np.var(window)
                 for q in sett.quantiles:
-                    cls._x_test[f'{parameter_name}_quantile_{q}'].iloc[day + 1] = np.quantile(window, q)
+                    x_test[f'{parameter_name}_quantile_{q}'].iloc[day + 1] = np.quantile(window, q)
 
-        cls._y_pred = Series(y_pred, cls._x_test.index)
+        y_pred = Series(y_pred, x_test.index)
+        return y_pred

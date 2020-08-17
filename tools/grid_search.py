@@ -1,5 +1,3 @@
-import settings as sett
-
 from sklearn.metrics import mean_absolute_error
 from typing import Dict
 
@@ -14,8 +12,9 @@ class GridSearch(object):
     _params: Dict
 
     @classmethod
-    def run(cls, splitter: Splitter) -> Dict:
+    def run(cls, splitter: Splitter, estimator: Estimator) -> Dict:
         cls._splitter = splitter
+        cls._estimator = estimator
 
         cls._calc_grid()
         cls._find_params()
@@ -24,13 +23,13 @@ class GridSearch(object):
     @classmethod
     def _calc_grid(cls):
         cls._error_params = dict()
-        for params in Estimator.param_grid:
+        for params in cls._estimator.param_grid:
             error = 0
             for pair in cls._splitter.train_test_pairs:
-                x_train, y_train = cls._divide_x_y(pair['train'])
-                x_test, y_test = cls._divide_x_y(pair['test'])
-                y_pred = Estimator.make_forecast(x_train, x_test, y_train, in_out='out', **params)
-                error += mean_absolute_error(y_test, y_pred)
+                cls._estimator.model.set_params(**params)
+                cls._estimator.fit(pair['x_train'], pair['y_train'])
+                y_pred = cls._estimator.predict_by_train_test(pair['y_train'], pair['x_test'])
+                error += mean_absolute_error(pair['y_test'], y_pred)
             error /= cls._splitter.pair_number
             print(params, error)
             cls._error_params[error] = params
@@ -40,9 +39,3 @@ class GridSearch(object):
         error_min = min(cls._error_params.keys())
         cls._params = cls._error_params[error_min]
         print(cls._params)
-
-    @staticmethod
-    def _divide_x_y(df):
-        x = df.drop(columns=sett.predicate)
-        y = df[sett.predicate]
-        return x, y
