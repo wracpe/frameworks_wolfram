@@ -12,6 +12,9 @@ from xgboost import XGBRegressor
 class Estimator(object):
 
     def __init__(self, model_name: str):
+        if model_name == 'lin_reg':
+            self.model = LinearRegression()
+
         if model_name == 'elastic_net':
             self.model = ElasticNet(alpha=1,
                                     l1_ratio=0.8,
@@ -25,26 +28,22 @@ class Estimator(object):
                                 'l1_ratio': x[1]} for x in product(alpha, l1_ratio)]
 
         if model_name == 'xgb':
-            self.model = XGBRegressor(n_estimators=50,
-                                      max_depth=5,
-                                      learning_rate=0.5,
+            self.model = XGBRegressor(n_estimators=30,
+                                      max_depth=10,
+                                      learning_rate=0.7,
                                       verbosity=0,
                                       objective='reg:squarederror',
                                       booster='gbtree',
                                       n_jobs=8,
-                                      colsample_bytree=0.5,
+                                      colsample_bytree=0.3,
                                       reg_alpha=0.1,
                                       reg_lambda=0.1,
                                       random_state=1)
 
-            n_estimators = np.arange(10, 60, 10)
-            reg_alpha = [0.1, 0.5, 1, 10, 20]
-            reg_lambda = [0.1, 0.5, 1, 10, 20]
-            learning_rate = [0.1, 0.4, 0.7, 0.9, 1]
-            self.param_grid = [{'n_estimators': x[0],
-                                'reg_alpha': x[1],
-                                'reg_lambda': x[2],
-                                'learning_rate': x[3]} for x in product(n_estimators, reg_alpha, reg_lambda, learning_rate)]
+            # n_estimators = np.arange(10, 60, 10)
+            max_depth = np.arange(3, 11)
+            colsample_bytree = np.arange(0.1, 1, 0.1)
+            self.param_grid = [{'max_depth': x[0], 'colsample_bytree': x[1]} for x in product(max_depth, colsample_bytree)]
 
     def fit(self, x_train: DataFrame, y_train: Series):
         self.model.fit(x_train, y_train)
@@ -70,7 +69,7 @@ class Estimator(object):
             for ws in sett.window_sizes:
                 parameter_name = sett.predicate + f'_{ws}'
                 window = y_stat[-ws:]
-                # x_test[f'{parameter_name}_median'].iloc[day + 1] = np.median(window)
+                x_test[f'{parameter_name}_mean'].iloc[day + 1] = np.mean(window)
                 # x_test[f'{parameter_name}_var'].iloc[day + 1] = np.var(window)
                 for q in sett.quantiles:
                     x_test[f'{parameter_name}_quantile_{q}'].iloc[day + 1] = np.quantile(window, q)

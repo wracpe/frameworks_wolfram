@@ -36,6 +36,32 @@ class Project(object):
             y_adap = estimator.predict_by_test(data['x_train'])
             y_pred = estimator.predict_by_train_test(data['y_train'], data['x_test'])
 
+            # start = data['start_row'][sett.predicate].tolist()[0]
+            #
+            # fact = list()
+            # model = list()
+            # y_fact = start
+            # y_model = start
+            # for i in data['y_train'].index:
+            #     y_fact = y_fact * (1 + data['y_train'].loc[i])
+            #     y_model = y_fact * (1 + y_adap.loc[i])
+            #     fact.append(y_fact)
+            #     model.append(y_model)
+            # data['y_train'] = Series(fact, data['y_train'].index)
+            # y_adap = Series(model, data['y_train'].index)
+            #
+            # fact = list()
+            # model = list()
+            # y_fact = data['y_train'].iloc[-1]
+            # y_model = y_fact
+            # for i in data['y_test'].index:
+            #     y_fact = y_fact * (1 + data['y_test'].loc[i])
+            #     y_model = y_model * (1 + y_pred.loc[i])
+            #     fact.append(y_fact)
+            #     model.append(y_model)
+            # data['y_test'] = Series(fact, data['y_test'].index)
+            # y_pred = Series(model, data['y_test'].index)
+
             # data['y_train'].plot()
             # y_adap.plot()
             # data['y_test'].plot()

@@ -5,7 +5,10 @@ import settings as sett
 from pandas import DataFrame
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
+from sklearn.preprocessing import MinMaxScaler
 from typing import Dict, List
+
+import matplotlib.pyplot as plt
 
 from tools.window_feature_generator import WindowFeatureGenerator
 
@@ -44,7 +47,7 @@ class Parser(object):
         cls._well_names.remove('7Г2')
         # cls._well_names.remove('55')
         # cls._well_names.remove('32')
-        cls._well_names = ['55']
+        cls._well_names = ['22']
 
     @classmethod
     def _fill_missing_values_in_predictor(cls):
@@ -52,6 +55,9 @@ class Parser(object):
         features = ['Давление забойное от Pпр',
                     'Давление на приеме насоса',
                     'Давление забойное от Hд',
+                    #'Дебит нефти (ТМ)',
+                    #'Дебит жидкости (ТМ)',
+                    #'Дебит газа попутного',
                     'Удельный расход электроэнергии с контроллера']
 
         x = cls._df[features].copy()
@@ -63,8 +69,40 @@ class Parser(object):
         cls._well_data = dict()
         for well_name in cls._well_names:
             cls._df_well = cls._df[cls._df['Скв'] == well_name]
+            # cls._df_well.drop(columns='Скв', inplace=True)
+            # cls._df_well.dropna(axis='columns', how='all', inplace=True)
+            # cls._df_well.set_index(keys='Дата', inplace=True, verify_integrity=True)
+            #
+            # s_target = cls._df_well[sett.predicate]
+            # scaler = MinMaxScaler(feature_range=(0.1, 1))
+            # s_corr = abs(cls._df_well.corrwith(s_target, drop=False, method='pearson'))
+            # s_corr.dropna(inplace=True)
+            # s_num = cls._df_well.count()
+            # s_num = s_num.loc[s_corr.index]
+            #
+            # df_features = pd.concat(objs=[s_corr, s_num], axis='columns')
+            # df_features.drop(index=sett.predicate, inplace=True)
+            # X = scaler.fit_transform(df_features)
+            # df_features = pd.DataFrame(data=X, index=df_features.index)
+            #
+            # features = df_features[0].mul(df_features[1])
+            # features = features[features > 0.8]
+            # features.sort_values(ascending=False, inplace=True)
+            # features = list(features.index)
+            # features.append(sett.predicate)
+            #
+            # df_f_well = cls._df_well[features]
+            # df_f_well = cls._fill_missing_values_in_predictor(df_f_well)
+            #
+            # df_f_well.plot()
+            # plt.show()
+            #
             cls._df_well = cls._df_well[sett.usable_columns]
+            # cls._df_well[sett.predicate] = df_f_well[sett.predicate]
             cls._prepare_df_well()
+
+            # cls._df_well = cls._df_well.tail(395 + 90)
+
             data = cls._split_df_well()
             data['start_row'] = cls._start_row
             cls._well_data[well_name] = data
@@ -78,10 +116,10 @@ class Parser(object):
 
         cls._start_row = cls._df_well.iloc[[0]]
 
-        # df_1 = cls._df_well.diff()
-        # df_2 = cls._df_well.shift()
-        # cls._df_well = df_1.divide(df_2)
-        # cls._df_well.dropna(inplace=True)
+        df_1 = cls._df_well.diff()
+        df_2 = cls._df_well.shift()
+        cls._df_well = df_1.divide(df_2)
+        cls._df_well.dropna(inplace=True)
 
         cls._df_well = WindowFeatureGenerator.run(cls._df_well)
 
