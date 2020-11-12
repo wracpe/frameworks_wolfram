@@ -2,18 +2,17 @@ import pathlib
 
 
 work_path = pathlib.Path.cwd()
-file_name = 'day.csv'
-save_folder = 'plots'
+data_path = work_path / 'data'
+save_path = work_path / 'plots'
 
+field = 'otdelnoe'
+
+features_num = 5
 forecast_days_number = 90
-predicate = 'Дебит жидкости среднесуточный'
-# predicate = 'Дебит нефти расчетный'
+predicate = 'Дебит жидкости среднесуточный'  # Дебит жидкости среднесуточный, Дебит нефти расчетный
 predictor = 'Давление забойное от Pпр'
 
-usable_columns = ['Дата',
-                  'Время работы (ТМ)',
-                  predictor,
-                  predicate]  # Don't remove 'Дата' from this list
+usable_columns = ['Дата', 'Время работы (ТМ)', predictor, predicate]
 
 # window_sizes = [3, 4, 5, 8, 10, 15, 20, 40]
 window_sizes = [5]

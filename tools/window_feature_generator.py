@@ -14,7 +14,6 @@ class WindowFeatureGenerator(object):
     def run(cls, df: DataFrame) -> DataFrame:
         cls._df = df.copy()
         for column in [sett.predictor, sett.predicate]:
-        # for column in [sett.predicate]:
             cls._add_features(column)
         return cls._df
 
@@ -30,6 +29,6 @@ class WindowFeatureGenerator(object):
         window = cls._df[cls._column].rolling(window_size)
         cls._column += f'_{window_size}'
         cls._df[f'{cls._column}_mean'] = window.mean().shift()
-        # cls._df[f'{cls._column}_var'] = window.var().shift()
+        cls._df[f'{cls._column}_var'] = window.var().shift()
         for q in cls._quantiles:
             cls._df[f'{cls._column}_quantile_{q}'] = window.quantile(q).shift()

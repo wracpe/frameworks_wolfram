@@ -1,9 +1,8 @@
-from itertools import product
-
 import numpy as np
 
 import settings as sett
 
+from itertools import product
 from pandas import Series, DataFrame
 from sklearn.linear_model import LinearRegression, ElasticNet
 from xgboost import XGBRegressor
@@ -24,8 +23,7 @@ class Estimator(object):
 
             alpha = np.arange(0.2, 1.2, 0.2)
             l1_ratio = np.arange(0.2, 1, 0.2)
-            self.param_grid = [{'alpha': x[0],
-                                'l1_ratio': x[1]} for x in product(alpha, l1_ratio)]
+            self.param_grid = [{'alpha': x[0], 'l1_ratio': x[1]} for x in product(alpha, l1_ratio)]
 
         if model_name == 'xgb':
             self.model = XGBRegressor(n_estimators=30,
@@ -70,7 +68,7 @@ class Estimator(object):
                 parameter_name = sett.predicate + f'_{ws}'
                 window = y_stat[-ws:]
                 x_test[f'{parameter_name}_mean'].iloc[day + 1] = np.mean(window)
-                # x_test[f'{parameter_name}_var'].iloc[day + 1] = np.var(window)
+                x_test[f'{parameter_name}_var'].iloc[day + 1] = np.var(window)
                 for q in sett.quantiles:
                     x_test[f'{parameter_name}_quantile_{q}'].iloc[day + 1] = np.quantile(window, q)
 

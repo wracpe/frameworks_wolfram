@@ -10,7 +10,7 @@ from well import Well
 class Plotter(object):
 
     plt.rcParams.update({'figure.figsize': (20, 10), 'figure.dpi': 100})
-    _save_directory = sett.work_path / sett.save_folder
+    _save_directory = sett.save_path
 
     @classmethod
     def create_well_plot(cls, well: Well):
