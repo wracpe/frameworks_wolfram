@@ -1,3 +1,4 @@
+import pathlib
 import pandas as pd
 
 from sklearn.ensemble import ExtraTreesRegressor
@@ -6,16 +7,29 @@ from sklearn.impute import IterativeImputer
 from sklearn.preprocessing import MinMaxScaler
 from typing import Dict
 
-from settings import *
+from config_field import *
 from tools.window_feature_generator import WindowFeatureGenerator
+
+
+class DataHandler(object):
+
+    def __init__(
+            self,
+            path_data: pathlib.Path,
+            target: str,
+            window_sizes: List[int],
+            quantiles: List[float],
+    ):
+        self.path = path_data
+        self.target = target
+        self.window_sizes = window_sizes
+        self.quantiles = quantiles
 
 
 def read_prepare() -> Dict[str, Dict]:
     df = _read_chess()
 
     wells = df['Скв'].unique().tolist()
-    # wells = ['1', '2', '4', '6', '9', '10', '21', '22', '24', '26', '28', '29', '32', '50', '52', '55', '68Р']
-    wells = ['29']
     well_data = dict()
 
     for well in wells:

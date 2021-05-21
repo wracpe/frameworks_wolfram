@@ -1,4 +1,4 @@
-import settings as sett
+import config_field as sett
 
 from pandas import DataFrame
 

@@ -1,15 +1,14 @@
-import settings as sett
-
-from project import Project
-from tools.data_handler import read_prepare
-from tools.plotter import Plotter
+from config_field import ConfigField
+from wrapper_field import WrapperField
 
 
-well_data = read_prepare()
-project = Project(well_data)
-
-
-for well in project.wells:
-    Plotter.create_well_plot(well)
-
-Plotter.create_project_plot(project)
+config_vyngayakhinskoe = ConfigField(
+    name='Вынгаяхинское',
+    target='ql_m3_fact',
+    estimator_name_field='ela',
+    estimator_name_well='xgb',
+    is_deep_grid_search=True,
+    window_sizes=[3, 6, 12],
+    quantiles=[0.2, 0.8],
+)
+wrapper_field = WrapperField(config_vyngayakhinskoe)

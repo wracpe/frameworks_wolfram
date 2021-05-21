@@ -1,6 +1,4 @@
-import settings as sett
-
-from pandas import DataFrame, Series
+import pandas as pd
 
 
 class Splitter(object):
@@ -8,7 +6,7 @@ class Splitter(object):
     _fold_samples_number = sett.forecast_days_number
     _r = 2
 
-    def __init__(self, x: DataFrame, y: Series):
+    def __init__(self, x: pd.DataFrame, y: pd.DataFrame):
         self.x = x
         self.y = y
 

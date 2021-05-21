@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-import settings as sett
+import config_field as sett
 
-from project import Project
-from well import Well
+from wrapper_field import WrapperField
+from wrapper_well import WrapperWell
 
 
 class Plotter(object):
@@ -13,11 +13,11 @@ class Plotter(object):
     _save_directory = sett.save_path
 
     @classmethod
-    def create_well_plot(cls, well: Well):
+    def create_well_plot(cls, well: WrapperWell):
         fig = plt.Figure()
 
         ax_1 = fig.add_subplot(321)
-        y_1_fact = pd.concat(objs=[well.data['y_train'], well.data['y_test']])
+        y_1_fact = pd.concat(objs=[well._data['y_train'], well._data['y_test']])
         y_1_model = pd.concat(objs=[well.y_adap, well.y_pred])
         y_1_fact.plot(ax=ax_1)
         y_1_model.plot(ax=ax_1)
@@ -25,19 +25,19 @@ class Plotter(object):
         ax_1.legend()
 
         ax_2 = fig.add_subplot(323, sharex=ax_1)
-        y_2 = pd.concat(objs=[well.data['x_train'][sett.predictor], well.data['x_test'][sett.predictor]])
+        y_2 = pd.concat(objs=[well._data['x_train'][sett.predictor], well._data['x_test'][sett.predictor]])
         y_2.plot(ax=ax_2)
         ax_2.grid()
         ax_2.legend()
 
         ax_3 = fig.add_subplot(325, sharex=ax_1)
-        y_3 = pd.concat(objs=[well.data['x_train']['Время работы (ТМ)'], well.data['x_test']['Время работы (ТМ)']])
+        y_3 = pd.concat(objs=[well._data['x_train']['Время работы (ТМ)'], well._data['x_test']['Время работы (ТМ)']])
         y_3.plot(ax=ax_3)
         ax_3.grid()
         ax_3.legend()
 
         ax_4 = fig.add_subplot(222)
-        y_4_fact = well.data['y_test']
+        y_4_fact = well._data['y_test']
         y_4_model = well.y_pred
         y_4_fact.plot(ax=ax_4)
         y_4_model.plot(ax=ax_4)
@@ -62,10 +62,10 @@ class Plotter(object):
         # ax.grid()
         # ax.legend()
 
-        fig.savefig(fname=cls._save_directory / f'{well.name}.png')
+        fig.savefig(fname=cls._save_directory / f'{well._well_name_ois}.png')
 
     @classmethod
-    def create_project_plot(cls, project: Project):
+    def create_project_plot(cls, project: WrapperField):
         plt.figure()
         x = project.y_dev.index
         y = project.y_dev.to_list()

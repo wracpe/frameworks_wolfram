@@ -1,6 +1,6 @@
 import pandas as pd
 
-import settings as sett
+import config_field as sett
 
 from pandas import DataFrame
 from sklearn.experimental import enable_iterative_imputer
