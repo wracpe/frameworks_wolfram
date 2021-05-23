@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from itertools import product
 from sklearn.linear_model import ElasticNet
+from typing import Any, Dict, List
 from xgboost import XGBRegressor
 
 from config_field import ConfigField
@@ -9,41 +10,47 @@ from config_field import ConfigField
 
 class WrapperEstimator(object):
 
-    def __init__(self, config_field: ConfigField, estimator_name: str):
+    def __init__(
+            self,
+            config_field: ConfigField,
+            estimator_name: str,
+    ):
+        self._estimator = _Estimator(estimator_name)
         self._config_field = config_field
-        self.estimator = _Estimator(estimator_name)
 
-    def fit(self, x_train: pd.DataFrame, y_train: pd.DataFrame):
-        self.estimator.model.fit(x_train, y_train)
+    def get_param_grid(self) -> List[Dict[str, Any]]:
+        return self._estimator.param_grid
 
-    def predict_by_test(self, x_test: pd.DataFrame):
-        y_pred = self.estimator.model.predict(x_test)
-        y_pred = pd.Series(y_pred, x_test.index)
-        return y_pred
+    def set_params(self, params: Dict[str, Any]) -> None:
+        self._estimator.model.set_params(**params)
 
-    def predict_by_train_test(self, y_train: pd.DataFrame, x_test: pd.DataFrame):
-        y_pred = list()
-        y_stat = y_train.to_list()
-        prediction_length = len(x_test.index)
+    def fit(self, x_train: pd.DataFrame, y_train: pd.DataFrame) -> None:
+        self._estimator.model.fit(x_train, y_train)
 
-        for day in range(prediction_length):
+    def predict_train(self, x_train: pd.DataFrame) -> pd.DataFrame:
+        ym_train = self._estimator.model.predict(x_train)
+        ym_train = pd.DataFrame(ym_train, x_train.index)
+        return ym_train
+
+    def predict_test(self, y_train: pd.DataFrame, x_test: pd.DataFrame) -> pd.DataFrame:
+        ym_test = []
+        ym_stat = y_train.squeeze().to_list()
+        for day in range(self._config_field.forecast_days_number):
             x = x_test.iloc[[day]]
-            y = self.estimator.model.predict(x)[0]
-            y_pred.append(y)
-            y_stat.append(y)
-            if day == prediction_length - 1:
+            y = self._estimator.model.predict(x)[0]
+            ym_test.append(y)
+            ym_stat.append(y)
+            if day == self._config_field.forecast_days_number - 1:
                 break
-
             for ws in self._config_field.window_sizes:
                 parameter_name = self._config_field.predicate + f'_{ws}'
-                window = y_stat[-ws:]
+                window = ym_stat[-ws:]
                 x_test[f'{parameter_name}_mean'].iloc[day + 1] = np.mean(window)
                 x_test[f'{parameter_name}_var'].iloc[day + 1] = np.var(window)
                 for q in self._config_field.quantiles:
                     x_test[f'{parameter_name}_quantile_{q}'].iloc[day + 1] = np.quantile(window, q)
-
-        y_pred = pd.Series(y_pred, x_test.index)
-        return y_pred
+        ym_test = pd.DataFrame(ym_test, x_test.index)
+        return ym_test
 
 
 class _Estimator(object):
@@ -74,12 +81,7 @@ class _Estimator(object):
     }
 
     def __init__(self, name: str):
-        self.name = name
-        self._run()
-
-    def _run(self) -> None:
-        self.model, self.param_dict = self._estimators[self.name]
+        self.model, self._param_dict = self._estimators[name]
         self.param_grid = []
-        for params in product(self.param_dict.values()):
-            x = dict(zip(self.param_dict.keys(), params))
-            self.param_grid.append(x)
+        for params in product(self._param_dict.values()):
+            self.param_grid.append(dict(zip(self._param_dict.keys(), params)))
