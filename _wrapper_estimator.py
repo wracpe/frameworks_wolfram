@@ -24,33 +24,33 @@ class _WrapperEstimator(object):
     def set_params(self, params: Dict[str, Any]) -> None:
         self._estimator.model.set_params(**params)
 
-    def fit(self, x_train: pd.DataFrame, y_train: pd.DataFrame) -> None:
+    def fit(self, x_train: pd.DataFrame, y_train: pd.Series) -> None:
         self._estimator.model.fit(x_train, y_train)
 
-    def predict_train(self, x_train: pd.DataFrame) -> pd.DataFrame:
-        ym_train = self._estimator.model.predict(x_train)
-        ym_train = pd.DataFrame(ym_train, x_train.index)
-        return ym_train
+    def predict_train(self, x_train: pd.DataFrame) -> pd.Series:
+        y_train = self._estimator.model.predict(x_train)
+        y_train = pd.Series(y_train, x_train.index)
+        return y_train
 
-    def predict_test(self, y_train: pd.DataFrame, x_test: pd.DataFrame) -> pd.DataFrame:
-        ym_test = []
-        ym_stat = y_train.squeeze().to_list()
+    def predict_test(self, y_train: pd.Series, x_test: pd.DataFrame) -> pd.Series:
+        y_test = []
+        y_stat = y_train.squeeze().to_list()
         for day in range(self._config_field.forecast_days_number):
             x = x_test.iloc[[day]]
             y = self._estimator.model.predict(x)[0]
-            ym_test.append(y)
-            ym_stat.append(y)
+            y_test.append(y)
+            y_stat.append(y)
             if day == self._config_field.forecast_days_number - 1:
                 break
             for ws in self._config_field.window_sizes:
                 parameter_name = self._config_field.predicate + f'_{ws}'
-                window = ym_stat[-ws:]
+                window = y_stat[-ws:]
                 x_test[f'{parameter_name}_mean'].iloc[day + 1] = np.mean(window)
                 x_test[f'{parameter_name}_var'].iloc[day + 1] = np.var(window)
                 for q in self._config_field.quantiles:
                     x_test[f'{parameter_name}_quantile_{q}'].iloc[day + 1] = np.quantile(window, q)
-        ym_test = pd.DataFrame(ym_test, x_test.index)
-        return ym_test
+        y_test = pd.Series(y_test, x_test.index)
+        return y_test
 
 
 class _Estimator(object):
@@ -83,5 +83,5 @@ class _Estimator(object):
     def __init__(self, name: str):
         self.model, self._param_dict = self._estimators[name]
         self.param_grid = []
-        for params in product(self._param_dict.values()):
+        for params in product(*self._param_dict.values()):
             self.param_grid.append(dict(zip(self._param_dict.keys(), params)))

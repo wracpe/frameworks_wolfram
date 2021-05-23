@@ -1,7 +1,7 @@
 import datetime
 import jsonpickle
 import pandas as pd
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 from config_field import ConfigField
 from data_objects.field import Field
@@ -22,7 +22,7 @@ class _WrapperField(object):
         self._create_field_from_json_dump()
         self._read_and_prepare_data()
         self._make_forecast_by_wells()
-        self._calc_average_relative_deviations()
+        # self._calc_average_relative_deviations()
 
     def _create_field_from_json_dump(self) -> None:
         with open(self.config_field.path_json_dump, 'r') as f:
@@ -30,8 +30,7 @@ class _WrapperField(object):
         self._field = jsonpickle.decode(json_dump, classes=Field)
 
     def _read_and_prepare_data(self) -> None:
-        x = []
-        y = []
+        x, y = [], []
         self._well_data = {}
         for well in self._field.wells:
             data_handler_well = _DataHandlerWell(self.config_field, well.name_ois)
@@ -47,25 +46,25 @@ class _WrapperField(object):
         self._create_field_estimator()
         for well_name_ois, data in self._well_data.items():
             print(well_name_ois)
-            data = self._add_field_forecast(data)
+            x_train, y_train, x_test, y_test = data.values()
+            x_train['q_by_field'] = self._field_estimator.predict_train(x_train)
+            x_test['q_by_field'] = self._field_estimator.predict_test(y_train, x_test)
             wrapper_well = _WrapperWell(
                 self.config_field,
                 well_name_ois,
-                data,
+                x_train,
+                y_train,
+                x_test,
+                y_test,
             )
             self._wrapper_wells.append(wrapper_well)
 
     def _create_field_estimator(self) -> None:
-        self._wrapper_estimator = _WrapperEstimator(
+        self._field_estimator = _WrapperEstimator(
             self.config_field,
             self.config_field.estimator_name_field,
         )
-        self._wrapper_estimator.fit(self._x_train, self._y_train)
-
-    def _add_field_forecast(self, data: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
-        data['x_train']['ff'] = self._wrapper_estimator.predict_train(data['x_train'])
-        data['x_test']['ff'] = self._wrapper_estimator.predict_test(data['y_train'], data['x_test'])
-        return data
+        self._field_estimator.fit(self._x_train, self._y_train)
 
     @staticmethod
     def _calc_average_relative_deviations(wells: List[_WrapperWell]) -> pd.Series:
@@ -94,7 +93,7 @@ class _DataHandlerWell(object):
         self._well_name_ois = well_name_ois
         self._data = {}
 
-    def get_data(self) -> Dict[str, pd.DataFrame]:
+    def get_data(self) -> Dict[str, Union[pd.DataFrame, pd.Series]]:
         self._read_data()
         self._add_features()
         self._split_train_test_x_y()
@@ -107,9 +106,9 @@ class _DataHandlerWell(object):
         ]
         self._df = pd.read_csv(
             filepath_or_buffer=self._config_field.path_data / f'chess_{self._well_name_ois}.csv',
-            index_col=True,
-            usecols=self._param_names,
+            usecols=['dt'] + self._param_names,
         )
+        self._df.set_index(keys='dt', inplace=True, verify_integrity=True)
         self._df.index = self._df.index.map(self._convert_day_date)
 
     def _add_features(self) -> None:
@@ -132,9 +131,9 @@ class _DataHandlerWell(object):
         self._data['x_train'], self._data['y_train'] = self._divide_x_y(df_train)
         self._data['x_test'], self._data['y_test'] = self._divide_x_y(df_test)
 
-    def _divide_x_y(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def _divide_x_y(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
         x = df.drop(columns=self._config_field.predicate)
-        y = df[self._config_field.predicate]
+        y = df[self._config_field.predicate].squeeze()
         return x, y
 
     @staticmethod

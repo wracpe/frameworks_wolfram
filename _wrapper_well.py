@@ -1,6 +1,5 @@
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
-from typing import Dict
 
 from config_field import ConfigField
 from _wrapper_estimator import _WrapperEstimator
@@ -12,11 +11,17 @@ class _WrapperWell(object):
             self,
             config_field: ConfigField,
             well_name_ois: str,
-            data: Dict[str, pd.DataFrame],
+            x_train: pd.DataFrame,
+            y_train: pd.Series,
+            x_test: pd.DataFrame,
+            y_test: pd.Series,
     ):
         self._well_name_ois = well_name_ois
         self._config_field = config_field
-        self._data = data
+        self._x_train = x_train
+        self._x_test = x_test
+        self._y_train_true = y_train
+        self._y_test_true = y_test
         self._run()
 
     def _run(self) -> None:
@@ -29,24 +34,23 @@ class _WrapperWell(object):
             self._config_field.estimator_name_well,
         )
         splitter = _Splitter(
-            self._data['x_train'],
-            self._data['y_train'],
+            self._x_train,
+            self._y_train_true,
             self._config_field.is_deep_grid_search,
             self._config_field.forecast_days_number,
         )
         grid_search = _GridSearch(wrapper_estimator, splitter)
         wrapper_estimator.set_params(**grid_search.params)
-        wrapper_estimator.fit(self._data['x_train'], self._data['y_train'])
-        self.ym_train = wrapper_estimator.predict_train(self._data['x_train'])
-        self.ym_test = wrapper_estimator.predict_test(self._data['y_train'], self._data['x_test'])
+        wrapper_estimator.fit(self._x_train, self._y_train_true)
+        self._y_train_pred = wrapper_estimator.predict_train(self._x_train)
+        self._y_test_pred = wrapper_estimator.predict_test(self._y_train_true, self._x_test)
 
-    def _calc_deviations(self):
-        self.y_dev = self._calc_relative_deviations(y_true=self._data['y_test'], y_pred=self.ym_test)
-        self.mae_train = mean_absolute_error(y_true=self._data['y_train'], y_pred=self.ym_train)
-        self.mae_test = mean_absolute_error(y_true=self._data['y_test'], y_pred=self.ym_test)
+    def _calc_deviations(self) -> None:
+        self.mae_train = mean_absolute_error(self._y_train_true, self._y_train_pred)
+        self.mae_test = mean_absolute_error(self._y_test_true, self._y_test_pred)
+        # self._calc_relative_deviations()
 
-    @staticmethod
-    def _calc_relative_deviations(y_true: pd.DataFrame, y_pred: pd.DataFrame) -> pd.DataFrame:
+    def _calc_relative_deviations(self) -> None:
         y_dev = []
         for i in y_true.index:
             y1 = y_true.loc[i]
@@ -54,7 +58,6 @@ class _WrapperWell(object):
             yd = abs(y1 - y2) / max(y1, y2) * 100
             y_dev.append(yd)
         y_dev = pd.DataFrame(y_dev, y_true.index)
-        return y_dev
 
 
 class _Splitter(object):
@@ -62,7 +65,7 @@ class _Splitter(object):
     def __init__(
             self,
             x_train: pd.DataFrame,
-            y_train: pd.DataFrame,
+            y_train: pd.Series,
             is_deep_split: bool,
             fold_samples_number: int,
     ):
@@ -136,7 +139,7 @@ class _GridSearch(object):
         for params in self._wrapper_estimator.get_param_grid():
             error = 0
             for pair in self._splitter.train_test_pairs:
-                self._wrapper_estimator.set_params(**params)
+                self._wrapper_estimator.set_params(params)
                 self._wrapper_estimator.fit(pair['x_train'], pair['y_train'])
                 y_pred = self._wrapper_estimator.predict_test(pair['y_train'], pair['x_test'])
                 error += mean_absolute_error(pair['y_test'], y_pred)
