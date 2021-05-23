@@ -1,5 +1,5 @@
 from config_field import ConfigField
-from wrapper_field import WrapperField
+from _wrapper_field import _WrapperField
 
 
 config_vyngayakhinskoe = ConfigField(
@@ -11,4 +11,4 @@ config_vyngayakhinskoe = ConfigField(
     window_sizes=[3, 6, 12],
     quantiles=[0.2, 0.8],
 )
-wrapper_field = WrapperField(config_vyngayakhinskoe)
+wrapper_field = _WrapperField(config_vyngayakhinskoe)

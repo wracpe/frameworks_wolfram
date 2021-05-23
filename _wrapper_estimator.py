@@ -8,7 +8,7 @@ from xgboost import XGBRegressor
 from config_field import ConfigField
 
 
-class WrapperEstimator(object):
+class _WrapperEstimator(object):
 
     def __init__(
             self,

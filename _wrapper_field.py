@@ -5,11 +5,11 @@ from typing import Dict, List, Tuple
 
 from config_field import ConfigField
 from data_objects.field import Field
-from tools.wrapper_estimator import WrapperEstimator
-from wrapper_well import WrapperWell
+from _wrapper_estimator import _WrapperEstimator
+from _wrapper_well import _WrapperWell
 
 
-class WrapperField(object):
+class _WrapperField(object):
 
     def __init__(
             self,
@@ -48,7 +48,7 @@ class WrapperField(object):
         for well_name_ois, data in self._well_data.items():
             print(well_name_ois)
             data = self._add_field_forecast(data)
-            wrapper_well = WrapperWell(
+            wrapper_well = _WrapperWell(
                 self.config_field,
                 well_name_ois,
                 data,
@@ -56,7 +56,7 @@ class WrapperField(object):
             self._wrapper_wells.append(wrapper_well)
 
     def _create_field_estimator(self) -> None:
-        self._wrapper_estimator = WrapperEstimator(
+        self._wrapper_estimator = _WrapperEstimator(
             self.config_field,
             self.config_field.estimator_name_field,
         )
@@ -68,7 +68,7 @@ class WrapperField(object):
         return data
 
     @staticmethod
-    def _calc_average_relative_deviations(wells: List[WrapperWell]) -> pd.Series:
+    def _calc_average_relative_deviations(wells: List[_WrapperWell]) -> pd.Series:
         y_dev = []
         index = []
         well_number = len(wells)

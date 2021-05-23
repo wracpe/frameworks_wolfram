@@ -3,10 +3,10 @@ from sklearn.metrics import mean_absolute_error
 from typing import Dict
 
 from config_field import ConfigField
-from tools.wrapper_estimator import WrapperEstimator
+from _wrapper_estimator import _WrapperEstimator
 
 
-class WrapperWell(object):
+class _WrapperWell(object):
 
     def __init__(
             self,
@@ -24,7 +24,7 @@ class WrapperWell(object):
         self._calc_deviations()
 
     def _make_forecast(self) -> None:
-        wrapper_estimator = WrapperEstimator(
+        wrapper_estimator = _WrapperEstimator(
             self._config_field,
             self._config_field.estimator_name_well,
         )
@@ -120,7 +120,7 @@ class _GridSearch(object):
 
     def __init__(
             self,
-            wrapper_estimator: WrapperEstimator,
+            wrapper_estimator: _WrapperEstimator,
             splitter: _Splitter,
     ):
         self._wrapper_estimator = wrapper_estimator
