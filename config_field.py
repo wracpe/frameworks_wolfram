@@ -17,6 +17,7 @@ class ConfigField(object):
             is_deep_grid_search: bool,
             window_sizes: List[int],
             quantiles: List[float],
+            well_names_ois: List[str] = None,
     ):
         self.name = name
         self.predicate = target
@@ -25,6 +26,7 @@ class ConfigField(object):
         self.is_deep_grid_search = is_deep_grid_search
         self.window_sizes = window_sizes
         self.quantiles = quantiles
+        self.well_names_ois = well_names_ois
         self._set_paths()
 
     def _set_paths(self):

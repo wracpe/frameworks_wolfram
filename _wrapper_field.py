@@ -21,6 +21,7 @@ class _WrapperField(object):
     def _run(self) -> None:
         self._create_field_from_json_dump()
         self._read_and_prepare_data()
+        self._correct_data()
         self._make_forecast_by_wells()
         # self._calc_average_relative_deviations()
 
@@ -40,6 +41,10 @@ class _WrapperField(object):
             self._well_data[well.name_ois] = data
         self._x_train = pd.concat(objs=x, ignore_index=True)
         self._y_train = pd.concat(objs=y, ignore_index=True)
+
+    def _correct_data(self) -> None:
+        if self.config_field.well_names_ois is not None:
+            self._well_data = {name: self._well_data[name] for name in self.config_field.well_names_ois}
 
     def _make_forecast_by_wells(self) -> None:
         self._wrapper_wells = []
