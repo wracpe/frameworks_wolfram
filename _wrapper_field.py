@@ -23,7 +23,7 @@ class _WrapperField(object):
     def _run(self) -> None:
         self._create_field_from_json_dump()
         self._read_and_prepare_data()
-        self._correct_data()
+        self._correct_well_data()
         self._make_forecast_by_wells()
         self._calc_deviations()
         _Plotter(self)
@@ -39,13 +39,15 @@ class _WrapperField(object):
         for well in self._field.wells:
             data_handler_well = _DataHandlerWell(self.config_field, well.name_ois)
             data = data_handler_well.get_data()
+            if len(data['y_train']) < self.config_field.forecast_days_number:
+                continue
             x.append(data['x_train'])
             y.append(data['y_train'])
             self.well_data[well.name_ois] = data
         self.x_train = pd.concat(objs=x, ignore_index=True)
         self.y_train = pd.concat(objs=y, ignore_index=True)
 
-    def _correct_data(self) -> None:
+    def _correct_well_data(self) -> None:
         if self.config_field.well_names_ois is not None:
             self.well_data = {name: self.well_data[name] for name in self.config_field.well_names_ois}
 
@@ -139,7 +141,8 @@ class _DataHandlerWell(object):
 
     def _divide_x_y(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
         x = df.drop(columns=self._config_field.predicate)
-        y = df[self._config_field.predicate].squeeze()
+        y = df[self._config_field.predicate]
+        y = pd.Series(y.array, y.index)
         return x, y
 
     @staticmethod
