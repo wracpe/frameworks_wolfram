@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+import plotly as pl
+import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 from sklearn.metrics import mean_absolute_error
 
 from config_field import ConfigField
@@ -17,55 +20,49 @@ class _WrapperWell(object):
             x_test: pd.DataFrame,
             y_test: pd.Series,
     ):
-        self._well_name_ois = well_name_ois
-        self._config_field = config_field
-        self._x_train = x_train
-        self._x_test = x_test
-        self._y_train_true = y_train
-        self._y_test_true = y_test
+        self.config_field = config_field
+        self.well_name_ois = well_name_ois
+        self.x_train = x_train
+        self.x_test = x_test
+        self.y_train_true = y_train
+        self.y_test_true = y_test
         self._run()
 
     def _run(self) -> None:
         self._make_forecast()
         self._calc_deviations()
-        self._create_plot()
+        _Plotter(self)
 
     def _make_forecast(self) -> None:
         wrapper_estimator = _WrapperEstimator(
-            self._config_field,
-            self._config_field.estimator_name_well,
+            self.config_field,
+            self.config_field.estimator_name_well,
         )
         splitter = _Splitter(
-            self._x_train,
-            self._y_train_true,
-            self._config_field.is_deep_grid_search,
-            self._config_field.forecast_days_number,
+            self.x_train,
+            self.y_train_true,
+            self.config_field.is_deep_grid_search,
+            self.config_field.forecast_days_number,
         )
         grid_search = _GridSearch(wrapper_estimator, splitter)
         wrapper_estimator.set_params(grid_search.params)
-        wrapper_estimator.fit(self._x_train, self._y_train_true)
-        self._y_train_pred = wrapper_estimator.predict_train(self._x_train)
-        self._y_test_pred = wrapper_estimator.predict_test(self._y_train_true, self._x_test)
+        wrapper_estimator.fit(self.x_train, self.y_train_true)
+        self.y_train_pred = wrapper_estimator.predict_train(self.x_train)
+        self.y_test_pred = wrapper_estimator.predict_test(self.y_train_true, self.x_test)
 
     def _calc_deviations(self) -> None:
-        self.mae_train = mean_absolute_error(self._y_train_true, self._y_train_pred)
-        self.mae_test = mean_absolute_error(self._y_test_true, self._y_test_pred)
+        self.mae_train = mean_absolute_error(self.y_train_true, self.y_train_pred)
+        self.mae_test = mean_absolute_error(self.y_test_true, self.y_test_pred)
         self._calc_relative_deviations()
 
     def _calc_relative_deviations(self) -> None:
         y_dev = []
-        for i in self._y_test_true.index:
-            y1 = self._y_test_true.loc[i]
-            y2 = self._y_test_pred.loc[i]
-            yd = abs(y1 - y2) / max(y1, y2) * 100
+        for i in self.y_test_true.index:
+            y1 = self.y_test_true.loc[i]
+            y2 = self.y_test_pred.loc[i]
+            yd = abs(y1 - y2) / y1
             y_dev.append(yd)
-        self._y_dev = pd.Series(y_dev, self._y_test_true.index)
-
-    def _create_plot(self) -> None:
-        df = pd.concat(objs=[self._y_test_true, self._y_test_pred, self._y_dev], axis=1)
-        df.columns = ['true', 'pred', 'dev']
-        df.plot(figsize=(20, 10), grid=True)
-        plt.savefig(fname=self._config_field.path_results / f'{self._well_name_ois}.png')
+        self.y_dev = pd.Series(y_dev, self.y_test_true.index)
 
 
 class _Splitter(object):
@@ -159,3 +156,72 @@ class _GridSearch(object):
         error_min = min(self._error_params.keys())
         self.params = self._error_params[error_min]
         print(self.params)
+
+
+class _Plotter(object):
+
+    def __init__(
+            self,
+            wrapper_well: _WrapperWell,
+    ):
+        self._wrapper_well = wrapper_well
+        self._run()
+
+    def _run(self) -> None:
+        self._prepare()
+        self._create_plot()
+
+    def _prepare(self) -> None:
+        x = pd.concat(objs=[self._wrapper_well.x_train, self._wrapper_well.x_test], axis=0)
+        self._x_ax = x.index
+        self._x_ax_test = self._wrapper_well.x_test.index
+        self._x_date_test = self._wrapper_well.x_train.index[-1]
+        self._predictor = x[self._wrapper_well.config_field.predictor].squeeze()
+        self._y_true = pd.concat(objs=[self._wrapper_well.y_train_true, self._wrapper_well.y_test_true], axis=0)
+        self._y_pred = pd.concat(objs=[self._wrapper_well.y_train_pred, self._wrapper_well.y_test_pred], axis=0)
+
+    def _create_plot(self) -> None:
+        figure = go.Figure(layout=go.Layout(
+            font=dict(size=10),
+            hovermode='x',
+            template='seaborn',
+        ))
+        fig = make_subplots(
+            rows=2,
+            cols=2,
+            shared_xaxes=True,
+            column_width=[0.7, 0.3],
+            row_heights=[0.7, 0.3],
+            vertical_spacing=0.02,
+            horizontal_spacing=0.02,
+            figure=figure,
+        )
+        m = 'markers'
+        ml = 'markers+lines'
+        mark = dict(size=3)
+        line = dict(width=1)
+
+        trace = go.Scatter(name='true', x=self._x_ax, y=self._y_true, mode=m, marker=mark)
+        fig.add_trace(trace, row=1, col=1)
+
+        trace = go.Scatter(name='pred', x=self._x_ax, y=self._y_pred, mode=ml, marker=mark, line=line)
+        fig.add_trace(trace, row=1, col=1)
+
+        trace = go.Scatter(name='predictor', x=self._x_ax, y=self._predictor, mode=m, marker=mark)
+        fig.add_trace(trace, row=2, col=1)
+
+        trace = go.Scatter(name='true', x=self._x_ax_test, y=self._wrapper_well.y_test_true, mode=m, marker=mark)
+        fig.add_trace(trace, row=1, col=2)
+
+        trace = go.Scatter(name='pred', x=self._x_ax_test, y=self._wrapper_well.y_test_pred, mode=ml, marker=mark, line=line)
+        fig.add_trace(trace, row=1, col=2)
+
+        trace = go.Scatter(name='dev', x=self._x_ax_test, y=self._wrapper_well.y_dev, mode=ml, marker=mark, line=line)
+        fig.add_trace(trace, row=2, col=2)
+
+        fig.add_vline(row=1, col=1, x=self._x_date_test, line_width=2, line_dash='dash')
+        fig.add_vline(row=2, col=1, x=self._x_date_test, line_width=2, line_dash='dash')
+
+        path_str = str(self._wrapper_well.config_field.path_results)
+        file = f'{path_str}\\{self._wrapper_well.well_name_ois}.png'
+        pl.io.write_image(fig, file=file, width=1450, height=700, scale=2, engine='kaleido')

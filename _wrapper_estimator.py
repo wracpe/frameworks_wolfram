@@ -15,8 +15,8 @@ class _WrapperEstimator(object):
             config_field: ConfigField,
             estimator_name: str,
     ):
-        self._estimator = _Estimator(estimator_name)
         self._config_field = config_field
+        self._estimator = _Estimator(estimator_name)
 
     def get_param_grid(self) -> List[Dict[str, Any]]:
         return self._estimator.param_grid
@@ -58,7 +58,9 @@ class _Estimator(object):
 
     _estimators = {
         'ela': (
-            ElasticNet(random_state=1),
+            ElasticNet(
+                random_state=1,
+            ),
             {
                 'alpha': np.arange(1, 12, 2),
                 'l1_ratio': np.arange(0.2, 1, 0.2),
