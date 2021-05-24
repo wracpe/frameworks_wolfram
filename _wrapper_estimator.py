@@ -1,3 +1,4 @@
+import datetime
 import numpy as np
 import pandas as pd
 from itertools import product
@@ -33,24 +34,22 @@ class _WrapperEstimator(object):
         return y_train
 
     def predict_test(self, y_train: pd.Series, x_test: pd.DataFrame) -> pd.Series:
-        y_test = []
-        y_stat = y_train.squeeze().to_list()
-        size = len(x_test.index)
-        for day in range(size):
-            x = x_test.iloc[[day]]
-            y = self._estimator.model.predict(x)[0]
-            y_test.append(y)
-            y_stat.append(y)
-            if day == size - 1:
+        dates_test = x_test.index
+        date_last = dates_test[-1]
+        y_test = pd.Series(index=dates_test)
+        y_stat = pd.concat(objs=[y_train, y_test], axis=0, verify_integrity=True)
+        for date in dates_test:
+            y_test.loc[date] = y_stat.loc[date] = self._estimator.model.predict(x_test.loc[[date]])[0]
+            if date == date_last:
                 break
             for ws in self._config_field.window_sizes:
-                parameter_name = self._config_field.predicate + f'_{ws}'
-                window = y_stat[-ws:]
-                x_test[f'{parameter_name}_mean'].iloc[day + 1] = np.mean(window)
-                x_test[f'{parameter_name}_var'].iloc[day + 1] = np.var(window)
+                param_name = f'{self._config_field.predicate}_{ws}'
+                window = y_stat.dropna().iloc[-ws:]
+                date_next = date + datetime.timedelta(days=1)
+                x_test.loc[date_next, f'{param_name}_mean'] = window.mean()
+                x_test.loc[date_next, f'{param_name}_var'] = window.var()
                 for q in self._config_field.quantiles:
-                    x_test[f'{parameter_name}_quantile_{q}'].iloc[day + 1] = np.quantile(window, q)
-        y_test = pd.Series(y_test, x_test.index)
+                    x_test.loc[date_next, f'{param_name}_quantile_{q}'] = window.quantile(q)
         return y_test
 
 
@@ -59,6 +58,7 @@ class _Estimator(object):
     _estimators = {
         'ela': (
             ElasticNet(
+                max_iter=1e5,
                 random_state=1,
             ),
             {

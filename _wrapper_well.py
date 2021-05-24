@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import pandas as pd
 import plotly as pl
 import plotly.graph_objs as go
@@ -149,7 +148,6 @@ class _GridSearch(object):
                 y_pred = self._wrapper_estimator.predict_test(pair['y_train'], pair['x_test'])
                 error += mean_absolute_error(pair['y_test'], y_pred)
             error /= self._splitter.pair_number
-            print(error, params)
             self._error_params[error] = params
 
     def _find_params(self) -> None:

@@ -115,6 +115,7 @@ class _DataHandlerWell(object):
         )
         self._df.set_index(keys='dt', inplace=True, verify_integrity=True)
         self._df.index = self._df.index.map(self._convert_day_date)
+        self._df.interpolate(inplace=True)
 
     def _add_features(self) -> None:
         for param in self._param_names:

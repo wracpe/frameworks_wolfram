@@ -6,12 +6,13 @@ config_vyngayakhinskoe = ConfigField(
     name='Вынгаяхинское',
     target='ql_m3_fact',
     estimator_name_field='ela',
-    estimator_name_well='xgb',
+    estimator_name_well='ela',
     is_deep_grid_search=True,
     window_sizes=[3, 6, 12],
     quantiles=[0.2, 0.8],
-    # well_names_ois=[
-    #     '2860003808',
-    # ],
+    well_names_ois=[
+        '2860003808',
+        '2860007700',
+    ],
 )
 wrapper_field = _WrapperField(config_vyngayakhinskoe)
