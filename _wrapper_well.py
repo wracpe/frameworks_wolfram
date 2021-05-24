@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
 
@@ -27,6 +28,7 @@ class _WrapperWell(object):
     def _run(self) -> None:
         self._make_forecast()
         self._calc_deviations()
+        self._create_plot()
 
     def _make_forecast(self) -> None:
         wrapper_estimator = _WrapperEstimator(
@@ -40,7 +42,7 @@ class _WrapperWell(object):
             self._config_field.forecast_days_number,
         )
         grid_search = _GridSearch(wrapper_estimator, splitter)
-        wrapper_estimator.set_params(**grid_search.params)
+        wrapper_estimator.set_params(grid_search.params)
         wrapper_estimator.fit(self._x_train, self._y_train_true)
         self._y_train_pred = wrapper_estimator.predict_train(self._x_train)
         self._y_test_pred = wrapper_estimator.predict_test(self._y_train_true, self._x_test)
@@ -48,16 +50,22 @@ class _WrapperWell(object):
     def _calc_deviations(self) -> None:
         self.mae_train = mean_absolute_error(self._y_train_true, self._y_train_pred)
         self.mae_test = mean_absolute_error(self._y_test_true, self._y_test_pred)
-        # self._calc_relative_deviations()
+        self._calc_relative_deviations()
 
     def _calc_relative_deviations(self) -> None:
         y_dev = []
-        for i in y_true.index:
-            y1 = y_true.loc[i]
-            y2 = y_pred.loc[i]
+        for i in self._y_test_true.index:
+            y1 = self._y_test_true.loc[i]
+            y2 = self._y_test_pred.loc[i]
             yd = abs(y1 - y2) / max(y1, y2) * 100
             y_dev.append(yd)
-        y_dev = pd.DataFrame(y_dev, y_true.index)
+        self._y_dev = pd.Series(y_dev, self._y_test_true.index)
+
+    def _create_plot(self) -> None:
+        df = pd.concat(objs=[self._y_test_true, self._y_test_pred, self._y_dev], axis=1)
+        df.columns = ['true', 'pred', 'dev']
+        df.plot(figsize=(20, 10), grid=True)
+        plt.savefig(fname=self._config_field.path_results / f'{self._well_name_ois}.png')
 
 
 class _Splitter(object):
@@ -144,7 +152,7 @@ class _GridSearch(object):
                 y_pred = self._wrapper_estimator.predict_test(pair['y_train'], pair['x_test'])
                 error += mean_absolute_error(pair['y_test'], y_pred)
             error /= self._splitter.pair_number
-            print(params, error)
+            print(error, params)
             self._error_params[error] = params
 
     def _find_params(self) -> None:

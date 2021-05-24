@@ -35,12 +35,13 @@ class _WrapperEstimator(object):
     def predict_test(self, y_train: pd.Series, x_test: pd.DataFrame) -> pd.Series:
         y_test = []
         y_stat = y_train.squeeze().to_list()
-        for day in range(self._config_field.forecast_days_number):
+        size = len(x_test.index)
+        for day in range(size):
             x = x_test.iloc[[day]]
             y = self._estimator.model.predict(x)[0]
             y_test.append(y)
             y_stat.append(y)
-            if day == self._config_field.forecast_days_number - 1:
+            if day == size - 1:
                 break
             for ws in self._config_field.window_sizes:
                 parameter_name = self._config_field.predicate + f'_{ws}'
@@ -70,8 +71,8 @@ class _Estimator(object):
                 random_state=1,
             ),
             {
-                'n_estimators': np.arange(20, 60, 10),
-                'max_depth': np.arange(5, 11, 1),
+                'n_estimators': np.arange(20, 50, 10),
+                'max_depth': np.arange(5, 10, 1),
                 'learning_rate': [0.5, 0.7],
                 'colsample_bytree': [0.3, 0.7],
                 'reg_alpha': [0.1, 1, 10],
