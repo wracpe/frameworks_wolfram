@@ -1,7 +1,9 @@
 import datetime
 import jsonpickle
 import pandas as pd
-from typing import Dict, List, Tuple, Union
+import plotly as pl
+import plotly.graph_objs as go
+from typing import Dict, Tuple, Union
 
 from config_field import ConfigField
 from data_objects.field import Field
@@ -23,7 +25,8 @@ class _WrapperField(object):
         self._read_and_prepare_data()
         self._correct_data()
         self._make_forecast_by_wells()
-        # self._calc_average_relative_deviations()
+        self._calc_deviations()
+        _Plotter(self)
 
     def _create_field_from_json_dump(self) -> None:
         with open(self.config_field.path_json_dump, 'r') as f:
@@ -32,28 +35,28 @@ class _WrapperField(object):
 
     def _read_and_prepare_data(self) -> None:
         x, y = [], []
-        self._well_data = {}
+        self.well_data = {}
         for well in self._field.wells:
             data_handler_well = _DataHandlerWell(self.config_field, well.name_ois)
             data = data_handler_well.get_data()
             x.append(data['x_train'])
             y.append(data['y_train'])
-            self._well_data[well.name_ois] = data
-        self._x_train = pd.concat(objs=x, ignore_index=True)
-        self._y_train = pd.concat(objs=y, ignore_index=True)
+            self.well_data[well.name_ois] = data
+        self.x_train = pd.concat(objs=x, ignore_index=True)
+        self.y_train = pd.concat(objs=y, ignore_index=True)
 
     def _correct_data(self) -> None:
         if self.config_field.well_names_ois is not None:
-            self._well_data = {name: self._well_data[name] for name in self.config_field.well_names_ois}
+            self.well_data = {name: self.well_data[name] for name in self.config_field.well_names_ois}
 
     def _make_forecast_by_wells(self) -> None:
-        self._wrapper_wells = []
+        self.wrapper_wells = []
         self._create_field_estimator()
-        for well_name_ois, data in self._well_data.items():
+        for well_name_ois, data in self.well_data.items():
             print(well_name_ois)
             x_train, y_train, x_test, y_test = data.values()
-            x_train['q_by_field'] = self._field_estimator.predict_train(x_train)
-            x_test['q_by_field'] = self._field_estimator.predict_test(y_train, x_test)
+            x_train['q_by_field'] = self.field_estimator.predict_train(x_train)
+            x_test['q_by_field'] = self.field_estimator.predict_test(y_train, x_test)
             wrapper_well = _WrapperWell(
                 self.config_field,
                 well_name_ois,
@@ -62,29 +65,26 @@ class _WrapperField(object):
                 x_test,
                 y_test,
             )
-            self._wrapper_wells.append(wrapper_well)
+            self.wrapper_wells.append(wrapper_well)
 
     def _create_field_estimator(self) -> None:
-        self._field_estimator = _WrapperEstimator(
+        self.field_estimator = _WrapperEstimator(
             self.config_field,
             self.config_field.estimator_name_field,
         )
-        self._field_estimator.fit(self._x_train, self._y_train)
+        self.field_estimator.fit(self.x_train, self.y_train)
 
-    @staticmethod
-    def _calc_average_relative_deviations(wells: List[_WrapperWell]) -> pd.Series:
-        y_dev = []
-        index = []
-        well_number = len(wells)
-        for i in range(sett.forecast_days_number):
+    def _calc_deviations(self) -> None:
+        y_dev, indexes = [], []
+        well_number = len(self.wrapper_wells)
+        for day in range(self.config_field.forecast_days_number):
             yd = 0
-            for well in wells:
-                yd += well.y_dev.iloc[i]
+            for wrapper_well in self.wrapper_wells:
+                yd += wrapper_well.y_dev.iloc[day]
             yd /= well_number
             y_dev.append(yd)
-            index.append(i + 1)
-        y_dev = pd.Series(y_dev, index, name='Отн. отклонение дебита жидкости от факта, %')
-        return y_dev
+            indexes.append(day + 1)
+        self.y_dev = pd.Series(y_dev, indexes)
 
 
 class _DataHandlerWell(object):
@@ -145,3 +145,31 @@ class _DataHandlerWell(object):
     @staticmethod
     def _convert_day_date(x: str) -> datetime.date:
         return datetime.datetime.strptime(x, '%Y-%m-%d').date()
+
+
+class _Plotter(object):
+
+    def __init__(
+            self,
+            wrapper_field: _WrapperField,
+    ):
+        self._wrapper_field = wrapper_field
+        self._run()
+
+    def _run(self) -> None:
+        figure = go.Figure(layout=go.Layout(
+            font=dict(size=10),
+            hovermode='x',
+            template='seaborn',
+        ))
+        ml = 'markers+lines'
+        mark = dict(size=3)
+        line = dict(width=1)
+
+        y_dev = self._wrapper_field.y_dev
+        trace = go.Scatter(name='true', x=y_dev.index, y=y_dev, mode=ml, marker=mark, line=line)
+        figure.add_trace(trace)
+
+        path_str = str(self._wrapper_field.config_field.path_results)
+        file = f'{path_str}\\performance.png'
+        pl.io.write_image(figure, file=file, width=1450, height=700, scale=2, engine='kaleido')
