@@ -2,6 +2,7 @@ import datetime
 import numpy as np
 import pandas as pd
 from itertools import product
+from sklearn.base import clone
 from sklearn.linear_model import ElasticNet
 from typing import Any, Dict, List
 from xgboost import XGBRegressor
@@ -84,7 +85,8 @@ class _Estimator(object):
     }
 
     def __init__(self, name: str):
-        self.model, self._param_dict = self._estimators[name]
+        model, param_dict = self._estimators[name]
+        self.model = clone(model)
         self.param_grid = []
-        for params in product(*self._param_dict.values()):
-            self.param_grid.append(dict(zip(self._param_dict.keys(), params)))
+        for params in product(*param_dict.values()):
+            self.param_grid.append(dict(zip(param_dict.keys(), params)))
