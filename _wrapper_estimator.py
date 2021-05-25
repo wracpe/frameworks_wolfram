@@ -47,8 +47,7 @@ class _WrapperEstimator(object):
                 param_name = f'{self._config_field.predicate}_{ws}'
                 window = y_stat.dropna().iloc[-ws:]
                 date_next = date + datetime.timedelta(days=1)
-                x_test.loc[date_next, f'{param_name}_mean'] = window.mean()
-                x_test.loc[date_next, f'{param_name}_var'] = window.var()
+                x_test.loc[date_next, f'{param_name}_median'] = window.median()
                 for q in self._config_field.quantiles:
                     x_test.loc[date_next, f'{param_name}_quantile_{q}'] = window.quantile(q)
         return y_test
@@ -63,8 +62,8 @@ class _Estimator(object):
                 random_state=1,
             ),
             {
-                'alpha': np.arange(1, 12, 2),
-                'l1_ratio': np.arange(0.2, 1, 0.2),
+                'alpha': np.arange(1, 11, 1),
+                'l1_ratio': np.arange(0.1, 1.1, 0.1),
             },
         ),
         'xgb': (

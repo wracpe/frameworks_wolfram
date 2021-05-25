@@ -115,9 +115,9 @@ class _DataHandlerWell(object):
             filepath_or_buffer=self._config_field.path_data / f'chess_{self._well_name_ois}.csv',
             usecols=['dt'] + self._param_names,
         )
+        self._df.interpolate(method='nearest', inplace=True)
         self._df.set_index(keys='dt', inplace=True, verify_integrity=True)
         self._df.index = self._df.index.map(self._convert_day_date)
-        self._df.interpolate(inplace=True)
 
     def _add_features(self) -> None:
         for param in self._param_names:
@@ -128,8 +128,7 @@ class _DataHandlerWell(object):
     def _create_window_features(self, param: str, window_size: int) -> None:
         window = self._df[param].rolling(window_size)
         param += f'_{window_size}'
-        self._df[f'{param}_mean'] = window.mean().shift()
-        self._df[f'{param}_var'] = window.var().shift()
+        self._df[f'{param}_median'] = window.median().shift()
         for q in self._config_field.quantiles:
             self._df[f'{param}_quantile_{q}'] = window.quantile(q).shift()
 
