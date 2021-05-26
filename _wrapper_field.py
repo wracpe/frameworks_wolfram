@@ -58,20 +58,23 @@ class _WrapperField(object):
         self.wrapper_wells = []
         self._create_field_estimator()
         for well_name_ois, data in self.well_data.items():
-            print(well_name_ois)
-            x_train, y_train, x_test, y_test = data.values()
-            x_train['q_by_field'] = self.field_estimator.predict_train(x_train)
-            x_test['q_by_field'] = self.field_estimator.predict_test(y_train, x_test)
-            wrapper_well = _WrapperWell(
-                self.config_field,
-                self.forecast_days_number,
-                well_name_ois,
-                x_train,
-                y_train,
-                x_test,
-                y_test,
-            )
-            self.wrapper_wells.append(wrapper_well)
+            try:
+                print(well_name_ois)
+                x_train, y_train, x_test, y_test = data.values()
+                x_train['q_by_field'] = self.field_estimator.predict_train(x_train)
+                x_test['q_by_field'] = self.field_estimator.predict_test(y_train, x_test)
+                wrapper_well = _WrapperWell(
+                    self.config_field,
+                    self.forecast_days_number,
+                    well_name_ois,
+                    x_train,
+                    y_train,
+                    x_test,
+                    y_test,
+                )
+                self.wrapper_wells.append(wrapper_well)
+            except:
+                print(f'Well {well_name_ois} failed.')
 
     def _create_field_estimator(self) -> None:
         self.field_estimator = _WrapperEstimator(
