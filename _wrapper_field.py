@@ -26,17 +26,18 @@ class _WrapperField(object):
         self._correct_well_data()
         self._make_forecast_by_wells()
         self._calc_deviations()
+        self._save_well_results()
         _Plotter(self)
 
     def _create_field_from_json_dump(self) -> None:
         with open(self.config_field.path_json_dump, 'r') as f:
             json_dump = f.read()
-        self._field = jsonpickle.decode(json_dump, classes=Field)
+        self.field = jsonpickle.decode(json_dump, classes=Field)
 
     def _read_and_prepare_data(self) -> None:
         x, y = [], []
         self.well_data = {}
-        for well in self._field.wells:
+        for well in self.field.wells:
             data_handler_well = _DataHandlerWell(self.config_field, well.name_ois)
             data = data_handler_well.get_data()
             if len(data['y_train']) < self.config_field.forecast_days_number:
@@ -77,16 +78,23 @@ class _WrapperField(object):
         self.field_estimator.fit(self.x_train, self.y_train)
 
     def _calc_deviations(self) -> None:
-        y_dev, indexes = [], []
+        self.date_indexes = pd.date_range(self.field.date_test, self.field.date_end).date
+        self.y_dev = pd.Series(index=self.date_indexes)
         well_number = len(self.wrapper_wells)
-        for day in range(self.config_field.forecast_days_number):
+        for date in self.date_indexes:
             yd = 0
             for wrapper_well in self.wrapper_wells:
-                yd += wrapper_well.y_dev.iloc[day]
+                yd += wrapper_well.y_dev.loc[date]
             yd /= well_number
-            y_dev.append(yd)
-            indexes.append(day + 1)
-        self.y_dev = pd.Series(y_dev, indexes)
+            self.y_dev.loc[date] = yd
+
+    def _save_well_results(self) -> None:
+        df = pd.DataFrame(index=self.date_indexes)
+        for wrapper_well in self.wrapper_wells:
+            name = wrapper_well.well_name_ois
+            df[f'{name}_true'] = wrapper_well.y_test_true
+            df[f'{name}_pred'] = wrapper_well.y_test_pred
+        df.to_excel(self.config_field.path_results / f'well_results_{self.config_field.predicate}.xlsx')
 
 
 class _DataHandlerWell(object):
