@@ -13,6 +13,7 @@ class _WrapperWell(object):
     def __init__(
             self,
             config_field: ConfigField,
+            forecast_days_number: int,
             well_name_ois: str,
             x_train: pd.DataFrame,
             y_train: pd.Series,
@@ -20,6 +21,7 @@ class _WrapperWell(object):
             y_test: pd.Series,
     ):
         self.config_field = config_field
+        self.forecast_days_number = forecast_days_number
         self.well_name_ois = well_name_ois
         self.x_train = x_train
         self.x_test = x_test
@@ -41,7 +43,7 @@ class _WrapperWell(object):
             self.x_train,
             self.y_train_true,
             self.config_field.is_deep_grid_search,
-            self.config_field.forecast_days_number,
+            self.forecast_days_number,
         )
         grid_search = _GridSearch(wrapper_estimator, splitter)
         wrapper_estimator.set_params(grid_search.params)

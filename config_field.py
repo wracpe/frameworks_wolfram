@@ -4,14 +4,13 @@ from typing import List
 
 class ConfigField(object):
 
-    forecast_days_number = 90
     predictor = 'p'
     _path = pathlib.Path.cwd() / 'data'
 
     def __init__(
             self,
             name: str,
-            target: str,
+            predicate: str,
             estimator_name_field: str,
             estimator_name_well: str,
             is_deep_grid_search: bool,
@@ -20,7 +19,7 @@ class ConfigField(object):
             well_names_ois: List[str] = None,
     ):
         self.name = name
-        self.predicate = target
+        self.predicate = predicate
         self.estimator_name_field = estimator_name_field
         self.estimator_name_well = estimator_name_well
         self.is_deep_grid_search = is_deep_grid_search

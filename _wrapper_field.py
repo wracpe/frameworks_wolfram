@@ -33,14 +33,16 @@ class _WrapperField(object):
         with open(self.config_field.path_json_dump, 'r') as f:
             json_dump = f.read()
         self.field = jsonpickle.decode(json_dump, classes=Field)
+        self.dates_test = pd.date_range(self.field.date_test, self.field.date_end).date
+        self.forecast_days_number = len(self.dates_test)
 
     def _read_and_prepare_data(self) -> None:
         x, y = [], []
         self.well_data = {}
         for well in self.field.wells:
-            data_handler_well = _DataHandlerWell(self.config_field, well.name_ois)
+            data_handler_well = _DataHandlerWell(self.config_field, self.forecast_days_number, well.name_ois)
             data = data_handler_well.get_data()
-            if len(data['y_train']) < self.config_field.forecast_days_number:
+            if len(data['y_train']) < self.forecast_days_number:
                 continue
             x.append(data['x_train'])
             y.append(data['y_train'])
@@ -62,6 +64,7 @@ class _WrapperField(object):
             x_test['q_by_field'] = self.field_estimator.predict_test(y_train, x_test)
             wrapper_well = _WrapperWell(
                 self.config_field,
+                self.forecast_days_number,
                 well_name_ois,
                 x_train,
                 y_train,
@@ -78,10 +81,9 @@ class _WrapperField(object):
         self.field_estimator.fit(self.x_train, self.y_train)
 
     def _calc_deviations(self) -> None:
-        self.date_indexes = pd.date_range(self.field.date_test, self.field.date_end).date
-        self.y_dev = pd.Series(index=self.date_indexes)
+        self.y_dev = pd.Series(index=self.dates_test)
         well_number = len(self.wrapper_wells)
-        for date in self.date_indexes:
+        for date in self.dates_test:
             yd = 0
             for wrapper_well in self.wrapper_wells:
                 yd += wrapper_well.y_dev.loc[date]
@@ -89,7 +91,7 @@ class _WrapperField(object):
             self.y_dev.loc[date] = yd
 
     def _save_well_results(self) -> None:
-        df = pd.DataFrame(index=self.date_indexes)
+        df = pd.DataFrame(index=self.dates_test)
         for wrapper_well in self.wrapper_wells:
             name = wrapper_well.well_name_ois
             df[f'{name}_true'] = wrapper_well.y_test_true
@@ -102,9 +104,11 @@ class _DataHandlerWell(object):
     def __init__(
             self,
             config_field: ConfigField,
+            forecast_days_number: int,
             well_name_ois: str,
     ):
         self._config_field = config_field
+        self._forecast_days_number = forecast_days_number
         self._well_name_ois = well_name_ois
         self._data = {}
 
@@ -141,8 +145,8 @@ class _DataHandlerWell(object):
             self._df[f'{param}_quantile_{q}'] = window.quantile(q).shift()
 
     def _split_train_test_x_y(self) -> None:
-        df_train = self._df.head(len(self._df.index) - self._config_field.forecast_days_number)
-        df_test = self._df.tail(self._config_field.forecast_days_number)
+        df_train = self._df.head(len(self._df.index) - self._forecast_days_number)
+        df_test = self._df.tail(self._forecast_days_number)
         self._data['x_train'], self._data['y_train'] = self._divide_x_y(df_train)
         self._data['x_test'], self._data['y_test'] = self._divide_x_y(df_test)
 

@@ -4,7 +4,7 @@ from _wrapper_field import _WrapperField
 
 config_vyngayakhinskoe = ConfigField(
     name='Вынгаяхинское',
-    target='ql_m3_fact',
+    predicate='ql_m3_fact',
     estimator_name_field='xgb',
     estimator_name_well='ela',
     is_deep_grid_search=False,
