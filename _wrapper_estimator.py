@@ -1,13 +1,18 @@
 import datetime
+import warnings
 import numpy as np
 import pandas as pd
 from itertools import product
 from sklearn.base import clone
 from sklearn.linear_model import ElasticNet
+from sklearn.svm import LinearSVR
 from typing import Any, Dict, List
 from xgboost import XGBRegressor
 
 from config_field import ConfigField
+
+
+warnings.filterwarnings(action='ignore')
 
 
 class _WrapperEstimator(object):
@@ -64,6 +69,15 @@ class _Estimator(object):
             {
                 'alpha': np.arange(1, 11, 1),
                 'l1_ratio': np.arange(0.1, 1.1, 0.1),
+            },
+        ),
+        'svr': (
+            LinearSVR(
+                max_iter=1e5,
+                random_state=1,
+            ),
+            {
+                'C': np.arange(1, 2.1, 0.1),
             },
         ),
         'xgb': (
