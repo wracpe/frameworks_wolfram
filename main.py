@@ -1,3 +1,5 @@
+import pandas as pd
+
 from config_field import ConfigField
 from _wrapper_field import _WrapperField
 
@@ -93,6 +95,26 @@ configs = [
     # config_vyngayakhinskoe_liq,
     # config_vyngayakhinskoe_oil,
 ]
+
+# ВНИМАНИЕ! ЗАПУСК ШАГ 1.
 for config in configs:
     print(f'Calculation is started for "{config.name}" by "{config.predicate}".')
     _WrapperField(config)
+
+# ВНИМАНИЕ! ЗАПУСК ШАГ 2.
+# config_liq = configs[0]
+# config_oil = configs[1]
+# df_liq = pd.read_excel(io=config_liq.path_results / f'well_results_{config_liq.predicate}.xlsx', index_col=0)
+# df_oil = pd.read_excel(io=config_oil.path_results / f'well_results_{config_oil.predicate}.xlsx', index_col=0)
+# cols_liq = [col[:-5] for col in df_liq.columns]
+# cols_oil = [col[:-5] for col in df_oil.columns]
+# common_cols = sorted(set(cols_liq) & set(cols_oil))
+# df = pd.DataFrame(index=df_liq.index.date)
+# for col in common_cols:
+#     col_liq = col + '_liq'
+#     col_oil = col + '_oil'
+#     df[f'{col_liq}_true'] = df_liq[f'{col}_true'].copy()
+#     df[f'{col_liq}_pred'] = df_liq[f'{col}_pred'].copy()
+#     df[f'{col_oil}_true'] = df_oil[f'{col}_true'].copy()
+#     df[f'{col_oil}_pred'] = df_oil[f'{col}_pred'].copy()
+# df.to_excel(config_liq.path_results / f'well_results.xlsx')
