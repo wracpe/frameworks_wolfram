@@ -25,8 +25,8 @@ class _WrapperField(object):
         self._read_and_prepare_data()
         self._correct_well_data()
         self._make_forecast_by_wells()
-        self._calc_deviations()
         self._save_well_results()
+        self._calc_deviations()
         _Plotter(self)
 
     def _create_field_from_json_dump(self) -> None:
@@ -83,6 +83,14 @@ class _WrapperField(object):
         )
         self.field_estimator.fit(self.x_train, self.y_train)
 
+    def _save_well_results(self) -> None:
+        df = pd.DataFrame(index=self.dates_test)
+        for wrapper_well in self.wrapper_wells:
+            name = wrapper_well.well_name_ois
+            df[f'{name}_true'] = wrapper_well.y_test_true
+            df[f'{name}_pred'] = wrapper_well.y_test_pred
+        df.to_excel(self.config_field.path_results / f'well_results_{self.config_field.predicate}.xlsx')
+
     def _calc_deviations(self) -> None:
         self.y_dev = pd.Series(index=self.dates_test)
         well_number = len(self.wrapper_wells)
@@ -92,14 +100,6 @@ class _WrapperField(object):
                 yd += wrapper_well.y_dev.loc[date]
             yd /= well_number
             self.y_dev.loc[date] = yd
-
-    def _save_well_results(self) -> None:
-        df = pd.DataFrame(index=self.dates_test)
-        for wrapper_well in self.wrapper_wells:
-            name = wrapper_well.well_name_ois
-            df[f'{name}_true'] = wrapper_well.y_test_true
-            df[f'{name}_pred'] = wrapper_well.y_test_pred
-        df.to_excel(self.config_field.path_results / f'well_results_{self.config_field.predicate}.xlsx')
 
 
 class _DataHandlerWell(object):
@@ -130,7 +130,8 @@ class _DataHandlerWell(object):
             filepath_or_buffer=self._config_field.path_data / f'chess_{self._well_name_ois}.csv',
             usecols=['dt'] + self._param_names,
         )
-        self._df.interpolate(method='nearest', inplace=True)
+        self._df.interpolate(method='ffill', inplace=True)
+        self._df.interpolate(method='bfill', inplace=True)
         self._df.set_index(keys='dt', inplace=True, verify_integrity=True)
         self._df.index = self._df.index.map(self._convert_day_date)
 
@@ -188,5 +189,5 @@ class _Plotter(object):
         figure.add_trace(trace)
 
         path_str = str(self._wrapper_field.config_field.path_results)
-        file = f'{path_str}\\performance.png'
+        file = f'{path_str}\\performance_{self._wrapper_field.config_field.predicate}.png'
         pl.io.write_image(figure, file=file, width=1450, height=700, scale=2, engine='kaleido')

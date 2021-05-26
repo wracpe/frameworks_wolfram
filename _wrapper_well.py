@@ -223,5 +223,7 @@ class _Plotter(object):
         fig.add_vline(row=2, col=1, x=self._x_date_test, line_width=2, line_dash='dash')
 
         path_str = str(self._wrapper_well.config_field.path_results)
-        file = f'{path_str}\\{self._wrapper_well.well_name_ois}.png'
+        well_name = self._wrapper_well.well_name_ois
+        predicate = self._wrapper_well.config_field.predicate
+        file = f'{path_str}\\{well_name}_{predicate}.png'
         pl.io.write_image(fig, file=file, width=1450, height=700, scale=2, engine='kaleido')
