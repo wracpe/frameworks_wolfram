@@ -69,16 +69,12 @@ class _Estimator(object):
         'xgb': (
             XGBRegressor(
                 verbosity=0,
-                booster='gbtree',
                 random_state=1,
             ),
             {
                 'n_estimators': np.arange(20, 50, 10),
-                'max_depth': np.arange(5, 10, 1),
-                'learning_rate': [0.5, 0.7],
-                'colsample_bytree': [0.3, 0.7],
+                'max_depth': [3, 4, 5],
                 'reg_alpha': [0.1, 1, 10],
-                'reg_lambda': [0.1, 1, 10],
             },
         ),
     }
