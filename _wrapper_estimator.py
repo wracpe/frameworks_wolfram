@@ -9,7 +9,7 @@ from sklearn.svm import LinearSVR
 from typing import Any, Dict, List
 from xgboost import XGBRegressor
 
-from config_field import ConfigField
+from models.wolfram.api.config import Config
 
 
 warnings.filterwarnings(action='ignore')
@@ -19,10 +19,10 @@ class _WrapperEstimator(object):
 
     def __init__(
             self,
-            config_field: ConfigField,
+            config: Config,
             estimator_name: str,
     ):
-        self._config_field = config_field
+        self._config_field = config
         self._estimator = _Estimator(estimator_name)
 
     def get_param_grid(self) -> List[Dict[str, Any]]:
@@ -77,7 +77,7 @@ class _Estimator(object):
                 random_state=1,
             ),
             {
-                'C': np.arange(1, 2.1, 0.1),
+                'C': np.arange(1, 2.1, 1),
             },
         ),
         'xgb': (

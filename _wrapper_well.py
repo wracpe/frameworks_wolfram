@@ -4,25 +4,23 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 from sklearn.metrics import mean_absolute_error
 
-from config_field import ConfigField
-from _wrapper_estimator import _WrapperEstimator
+from .api.config import Config
+from ._wrapper_estimator import _WrapperEstimator
 
 
 class _WrapperWell(object):
 
     def __init__(
             self,
-            config_field: ConfigField,
-            forecast_days_number: int,
-            well_name_ois: str,
+            config: Config,
+            well_name: int,
             x_train: pd.DataFrame,
-            y_train: pd.Series,
             x_test: pd.DataFrame,
+            y_train: pd.Series,
             y_test: pd.Series,
     ):
-        self.config_field = config_field
-        self.forecast_days_number = forecast_days_number
-        self.well_name_ois = well_name_ois
+        self.config = config
+        self.well_name = well_name
         self.x_train = x_train
         self.x_test = x_test
         self.y_train_true = y_train
@@ -32,18 +30,28 @@ class _WrapperWell(object):
     def _run(self) -> None:
         self._make_forecast()
         self._calc_deviations()
-        _Plotter(self)
+        _Plotter(
+            self.config,
+            self.well_name,
+            self.x_train,
+            self.x_test,
+            self.y_train_true,
+            self.y_train_pred,
+            self.y_test_true,
+            self.y_test_pred,
+            self.y_dev,
+        )
 
     def _make_forecast(self) -> None:
         wrapper_estimator = _WrapperEstimator(
-            self.config_field,
-            self.config_field.estimator_name_well,
+            self.config,
+            self.config.estimator_name_well,
         )
         splitter = _Splitter(
             self.x_train,
             self.y_train_true,
-            self.config_field.is_deep_grid_search,
-            self.forecast_days_number,
+            self.config.is_deep_grid_search,
+            self.config.forecast_days_number,
         )
         grid_search = _GridSearch(wrapper_estimator, splitter)
         wrapper_estimator.set_params(grid_search.params)
@@ -162,9 +170,25 @@ class _Plotter(object):
 
     def __init__(
             self,
-            wrapper_well: _WrapperWell,
+            config: Config,
+            well_name: int,
+            x_train: pd.DataFrame,
+            x_test: pd.DataFrame,
+            y_train_true: pd.Series,
+            y_train_pred: pd.Series,
+            y_test_true: pd.Series,
+            y_test_pred: pd.Series,
+            y_dev: pd.Series,
     ):
-        self._wrapper_well = wrapper_well
+        self._config = config
+        self._well_name = well_name
+        self._x_train = x_train
+        self._x_test = x_test
+        self._y_train_true = y_train_true
+        self._y_train_pred = y_train_pred
+        self._y_test_true = y_test_true
+        self._y_test_pred = y_test_pred
+        self._y_dev = y_dev
         self._run()
 
     def _run(self) -> None:
@@ -172,13 +196,23 @@ class _Plotter(object):
         self._create_plot()
 
     def _prepare(self) -> None:
-        x = pd.concat(objs=[self._wrapper_well.x_train, self._wrapper_well.x_test], axis=0)
-        self._x_ax = x.index
-        self._x_ax_test = self._wrapper_well.x_test.index
-        self._x_date_test = self._wrapper_well.x_train.index[-1]
-        self._predictor = x[self._wrapper_well.config_field.predictor].squeeze()
-        self._y_true = pd.concat(objs=[self._wrapper_well.y_train_true, self._wrapper_well.y_test_true], axis=0)
-        self._y_pred = pd.concat(objs=[self._wrapper_well.y_train_pred, self._wrapper_well.y_test_pred], axis=0)
+        self._x = pd.concat(objs=[self._x_train, self._x_test], axis=0)
+        self._x_ax = self._x.index
+        self._x_ax_test = self._x_test.index
+        self._x_date_test = self._x_train.index[-1]
+        self._y_true = pd.concat(objs=[self._y_train_true, self._y_test_true], axis=0)
+        self._y_pred = pd.concat(objs=[self._y_train_pred, self._y_test_pred], axis=0)
+        self._set_main_predictors()
+
+    def _set_main_predictors(self) -> None:
+        cols = self._x.columns
+        cols_drop = []
+        specific_identifier = '_'
+        for col in cols:
+            if specific_identifier in col:
+                continue
+            cols_drop.append(col)
+        self._df_predictors = self._x[cols_drop]
 
     def _create_plot(self) -> None:
         figure = go.Figure(layout=go.Layout(
@@ -207,23 +241,24 @@ class _Plotter(object):
         trace = go.Scatter(name='pred', x=self._x_ax, y=self._y_pred, mode=ml, marker=mark, line=line)
         fig.add_trace(trace, row=1, col=1)
 
-        trace = go.Scatter(name='predictor', x=self._x_ax, y=self._predictor, mode=m, marker=mark)
-        fig.add_trace(trace, row=2, col=1)
+        for col in self._df_predictors.columns:
+            trace = go.Scatter(name=col, x=self._x_ax, y=self._df_predictors[col], mode=m, marker=mark)
+            fig.add_trace(trace, row=2, col=1)
 
-        trace = go.Scatter(name='true', x=self._x_ax_test, y=self._wrapper_well.y_test_true, mode=m, marker=mark)
+        trace = go.Scatter(name='true', x=self._x_ax_test, y=self._y_test_true, mode=m, marker=mark)
         fig.add_trace(trace, row=1, col=2)
 
-        trace = go.Scatter(name='pred', x=self._x_ax_test, y=self._wrapper_well.y_test_pred, mode=ml, marker=mark, line=line)
+        trace = go.Scatter(name='pred', x=self._x_ax_test, y=self._y_test_pred, mode=ml, marker=mark, line=line)
         fig.add_trace(trace, row=1, col=2)
 
-        trace = go.Scatter(name='dev', x=self._x_ax_test, y=self._wrapper_well.y_dev, mode=ml, marker=mark, line=line)
+        trace = go.Scatter(name='dev', x=self._x_ax_test, y=self._y_dev, mode=ml, marker=mark, line=line)
         fig.add_trace(trace, row=2, col=2)
 
         fig.add_vline(row=1, col=1, x=self._x_date_test, line_width=2, line_dash='dash')
         fig.add_vline(row=2, col=1, x=self._x_date_test, line_width=2, line_dash='dash')
 
-        path_str = str(self._wrapper_well.config_field.path_results)
-        well_name = self._wrapper_well.well_name_ois
-        predicate = self._wrapper_well.config_field.predicate
+        path_str = str(self._config.path_save)
+        well_name = self._well_name
+        predicate = self._config.predicate
         file = f'{path_str}\\{well_name}_{predicate}.png'
         pl.io.write_image(fig, file=file, width=1450, height=700, scale=2, engine='kaleido')
