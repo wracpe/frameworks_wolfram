@@ -1,5 +1,20 @@
+### PyCharm ###
+
 .idea/
+
+### VisualStudioCode ###
+
 .vscode/
-data/
-*.pyc
-*.png
+
+### Python ###
+
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Environments
+venv/
