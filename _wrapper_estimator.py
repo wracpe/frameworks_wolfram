@@ -9,7 +9,7 @@ from sklearn.svm import LinearSVR
 from typing import Any, Dict, List
 from xgboost import XGBRegressor
 
-from models.wolfram.api.config import Config
+from api.config import Config
 
 
 warnings.filterwarnings(action='ignore')
@@ -22,7 +22,7 @@ class _WrapperEstimator(object):
             config: Config,
             estimator_name: str,
     ):
-        self._config_field = config
+        self._config = config
         self._estimator = _Estimator(estimator_name)
 
     def get_param_grid(self) -> List[Dict[str, Any]]:
@@ -48,12 +48,12 @@ class _WrapperEstimator(object):
             y_test.loc[date] = y_stat.loc[date] = self._estimator.model.predict(x_test.loc[[date]])[0]
             if date == date_last:
                 break
-            for ws in self._config_field.window_sizes:
-                param_name = f'{self._config_field.predicate}_{ws}'
+            for ws in self._config.window_sizes:
+                param_name = f'{y_train.name}_{ws}'
                 window = y_stat.dropna().iloc[-ws:]
                 date_next = date + datetime.timedelta(days=1)
                 x_test.loc[date_next, f'{param_name}_median'] = window.median()
-                for q in self._config_field.quantiles:
+                for q in self._config.quantiles:
                     x_test.loc[date_next, f'{param_name}_quantile_{q}'] = window.quantile(q)
         return y_test
 
