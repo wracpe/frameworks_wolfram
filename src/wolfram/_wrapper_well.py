@@ -2,8 +2,8 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error
 from typing import Dict, List, Union
 
-from api.config import Config
-from _wrapper_estimator import WrapperEstimator
+from src.wolfram.api.config import Config
+from src.wolfram._wrapper_estimator import WrapperEstimator
 
 
 class WrapperWell(object):

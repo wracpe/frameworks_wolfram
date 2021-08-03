@@ -9,7 +9,7 @@ from sklearn.svm import LinearSVR
 from typing import Dict, List, Union
 from xgboost import XGBRegressor
 
-from api.config import Config
+from src.wolfram.api.config import Config
 
 
 warnings.filterwarnings(action='ignore')
