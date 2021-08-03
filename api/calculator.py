@@ -3,8 +3,9 @@ from typing import Dict, List, Tuple, Union
 
 from api.config import Config
 from api.well import Well
-from _wrapper_estimator import _WrapperEstimator
-from _wrapper_well import _WrapperWell
+from api.well import WellResults
+from _wrapper_estimator import WrapperEstimator
+from _wrapper_well import WrapperWell
 
 
 class Calculator(object):
@@ -12,24 +13,56 @@ class Calculator(object):
     def __init__(
             self,
             config: Config,
+            wells_input: List[Well],
     ):
         self._config = config
+        self._wells_input = wells_input
         self._run()
 
     def _run(self) -> None:
-        self._predict()
+        self._compute()
+        self._set_wells_output()
 
-    def _predict(self) -> None:
+    def _compute(self) -> None:
         self._calculator_rate_liq = _CalculatorRate(
             self._config,
+            self._wells_input,
             name_rate_to_predict=Well.NAME_RATE_LIQ,
             name_rate_to_drop=Well.NAME_RATE_OIL,
         )
         self._calculator_rate_oil = _CalculatorRate(
             self._config,
+            self._wells_input,
             name_rate_to_predict=Well.NAME_RATE_OIL,
             name_rate_to_drop=Well.NAME_RATE_LIQ,
         )
+
+    def _set_wells_output(self) -> None:
+        self._wells_output = []
+        wrapper_wells_liq = self._convert_list_to_dict(self._calculator_rate_liq.wrapper_wells)
+        wrapper_wells_oil = self._convert_list_to_dict(self._calculator_rate_oil.wrapper_wells)
+        wells_input = self._convert_list_to_dict(self._wells_input)
+        well_names = sorted(set(wrapper_wells_liq.keys()) & set(wrapper_wells_oil.keys()))
+        for well_name in well_names:
+            well_results = WellResults(
+                rates_liq_train=wrapper_wells_liq[well_name].y_train_pred,
+                rates_liq_test=wrapper_wells_liq[well_name].y_test_pred,
+                rates_oil_train=wrapper_wells_oil[well_name].y_train_pred,
+                rates_oil_test=wrapper_wells_oil[well_name].y_test_pred,
+            )
+            well = wells_input[well_name]
+            well.results = well_results
+            self._wells_output.append(well)
+
+    @staticmethod
+    def _convert_list_to_dict(items_list: List[Union[WrapperWell, Well]]) -> Dict[int, Union[WrapperWell, Well]]:
+        keys = [item.well_name for item in items_list]
+        items_dict = dict(zip(keys, items_list))
+        return items_dict
+
+    @property
+    def wells(self) -> List[Well]:
+        return self._wells_output
 
 
 class _CalculatorRate(object):
@@ -37,22 +70,24 @@ class _CalculatorRate(object):
     def __init__(
             self,
             config: Config,
+            wells: List[Well],
             name_rate_to_predict: str,
             name_rate_to_drop: str,
     ):
         self._config = config
+        self._wells = wells
         self._name_rate_to_predict = name_rate_to_predict
         self._name_rate_to_drop = name_rate_to_drop
         self._run()
 
     def _run(self) -> None:
-        self._handle_data()
-        self._make_forecast_by_wells()
+        self._handle()
+        self._compute()
 
-    def _handle_data(self) -> None:
+    def _handle(self) -> None:
         x, y = [], []
         self._well_data = {}
-        for well in self._config.wells:
+        for well in self._wells:
             handler = _Handler(
                 self._config,
                 self._name_rate_to_predict,
@@ -60,10 +95,11 @@ class _CalculatorRate(object):
                 well.df,
             )
             data = handler.data
-            if len(data['y_train']) < self._config.forecast_days_number:
+            train_days_number = len(data['y_train'])
+            if train_days_number < self._config.forecast_days_number:
                 print(
-                    f'Скважина {well.well_name} не будет рассчитана по параметру "{self._name_rate_to_predict}", так'
-                    f'как длительность периода адаптации меньше, чем прогноза.'
+                    f'Скважина {well.well_name} не будет рассчитана по параметру "{self._name_rate_to_predict}",'
+                    f'так как длительность периода адаптации меньше, чем периода прогнозирования.'
                 )
                 continue
             x.append(data['x_train'])
@@ -71,17 +107,24 @@ class _CalculatorRate(object):
             self._well_data[well.well_name] = data
         self._x_train = pd.concat(objs=x, ignore_index=True)
         self._y_train = pd.concat(objs=y, ignore_index=True)
-
-    def _make_forecast_by_wells(self) -> None:
-        self._wrapper_wells = []
         self._create_group_estimator()
+
+    def _create_group_estimator(self) -> None:
+        self._group_estimator = WrapperEstimator(
+            self._config,
+            self._config.estimator_name_group,
+        )
+        self._group_estimator.fit(self._x_train, self._y_train)
+
+    def _compute(self) -> None:
+        self._wrapper_wells = []
         for well_name, data in self._well_data.items():
             print(well_name)
             try:
                 x_train, y_train, x_test, y_test = data.values()
                 x_train[Well.NAME_RATE_BASE] = self._group_estimator.predict_train(x_train)
                 x_test[Well.NAME_RATE_BASE] = self._group_estimator.predict_test(y_train, x_test)
-                wrapper_well = _WrapperWell(
+                wrapper_well = WrapperWell(
                     self._config,
                     well_name,
                     x_train,
@@ -94,15 +137,8 @@ class _CalculatorRate(object):
                 print(exc)
                 continue
 
-    def _create_group_estimator(self) -> None:
-        self._group_estimator = _WrapperEstimator(
-            self._config,
-            self._config.estimator_name_group,
-        )
-        self._group_estimator.fit(self._x_train, self._y_train)
-
     @property
-    def wrapper_wells(self) -> List[_WrapperWell]:
+    def wrapper_wells(self) -> List[WrapperWell]:
         return self._wrapper_wells
 
 

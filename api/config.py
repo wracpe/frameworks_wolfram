@@ -1,13 +1,10 @@
 from typing import List
 
-from api.well import Well
-
 
 class Config(object):
 
     def __init__(
             self,
-            wells: List[Well],
             forecast_days_number: int,
             estimator_name_group: str = 'svr',
             estimator_name_well: str = 'ela',
@@ -20,7 +17,6 @@ class Config(object):
         if quantiles is None:
             quantiles = [0.1, 0.3]
 
-        self.wells = wells
         self.forecast_days_number = forecast_days_number
         self.estimator_name_group = estimator_name_group
         self.estimator_name_well = estimator_name_well

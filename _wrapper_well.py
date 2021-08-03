@@ -1,11 +1,12 @@
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
+from typing import Dict, List, Union
 
 from api.config import Config
-from _wrapper_estimator import _WrapperEstimator
+from _wrapper_estimator import WrapperEstimator
 
 
-class _WrapperWell(object):
+class WrapperWell(object):
 
     def __init__(
             self,
@@ -16,30 +17,42 @@ class _WrapperWell(object):
             y_train: pd.Series,
             y_test: pd.Series,
     ):
-        self.config = config
-        self.well_name = well_name
-        self.x_train = x_train
-        self.x_test = x_test
-        self.y_train_true = y_train
-        self.y_test_true = y_test
+        self._config = config
+        self._well_name = well_name
+        self._x_train = x_train
+        self._x_test = x_test
+        self._y_train_true = y_train
+        self._y_test_true = y_test
         self._run()
 
     def _run(self) -> None:
-        wrapper_estimator = _WrapperEstimator(
-            self.config,
-            self.config.estimator_name_well,
+        wrapper_estimator = WrapperEstimator(
+            self._config,
+            self._config.estimator_name_well,
         )
         splitter = _Splitter(
-            self.x_train,
-            self.y_train_true,
-            self.config.is_deep_grid_search,
-            self.config.forecast_days_number,
+            self._x_train,
+            self._y_train_true,
+            self._config.is_deep_grid_search,
+            self._config.forecast_days_number,
         )
         grid_search = _GridSearch(wrapper_estimator, splitter)
         wrapper_estimator.set_params(grid_search.params)
-        wrapper_estimator.fit(self.x_train, self.y_train_true)
-        self.y_train_pred = wrapper_estimator.predict_train(self.x_train)
-        self.y_test_pred = wrapper_estimator.predict_test(self.y_train_true, self.x_test)
+        wrapper_estimator.fit(self._x_train, self._y_train_true)
+        self._y_train_pred = wrapper_estimator.predict_train(self._x_train)
+        self._y_test_pred = wrapper_estimator.predict_test(self._y_train_true, self._x_test)
+
+    @property
+    def well_name(self) -> int:
+        return self._well_name
+
+    @property
+    def y_train_pred(self) -> pd.Series:
+        return self._y_train_pred
+
+    @property
+    def y_test_pred(self) -> pd.Series:
+        return self._y_test_pred
 
 
 class _Splitter(object):
@@ -59,13 +72,13 @@ class _Splitter(object):
         self._run()
 
     def _run(self) -> None:
-        self.train_test_pairs = []
+        self._train_test_pairs = []
         if self._is_deep_split:
             self._set_fold_number()
             self._create_train_test_pair()
         else:
             self._add_pair(self._total_samples_number, self._fold_samples_number)
-        self.pair_number = len(self.train_test_pairs)
+        self._pair_number = len(self._train_test_pairs)
 
     def _set_fold_number(self) -> None:
         fn = self._total_samples_number / self._fold_samples_number
@@ -93,19 +106,27 @@ class _Splitter(object):
         y_train = y_pair.head(train_samples_number)
         x_test = x_pair.tail(test_samples_number)
         y_test = y_pair.tail(test_samples_number)
-        self.train_test_pairs.append({
+        self._train_test_pairs.append({
             'x_train': x_train,
             'y_train': y_train,
             'x_test': x_test,
             'y_test': y_test,
         })
 
+    @property
+    def train_test_pairs(self) -> List[Dict[str, Union[pd.DataFrame, pd.Series]]]:
+        return self._train_test_pairs
+
+    @property
+    def pair_number(self) -> int:
+        return self.pair_number
+
 
 class _GridSearch(object):
 
     def __init__(
             self,
-            wrapper_estimator: _WrapperEstimator,
+            wrapper_estimator: WrapperEstimator,
             splitter: _Splitter,
     ):
         self._wrapper_estimator = wrapper_estimator
@@ -130,5 +151,9 @@ class _GridSearch(object):
 
     def _find_params(self) -> None:
         error_min = min(self._error_params.keys())
-        self.params = self._error_params[error_min]
-        print(self.params)
+        self._params = self._error_params[error_min]
+        print(self._params)
+
+    @property
+    def params(self) -> Dict[str, Union[float, int]]:
+        return self._params

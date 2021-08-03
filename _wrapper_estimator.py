@@ -6,7 +6,7 @@ from itertools import product
 from sklearn.base import clone
 from sklearn.linear_model import ElasticNet
 from sklearn.svm import LinearSVR
-from typing import Any, Dict, List
+from typing import Dict, List, Union
 from xgboost import XGBRegressor
 
 from api.config import Config
@@ -15,7 +15,7 @@ from api.config import Config
 warnings.filterwarnings(action='ignore')
 
 
-class _WrapperEstimator(object):
+class WrapperEstimator(object):
 
     def __init__(
             self,
@@ -25,10 +25,10 @@ class _WrapperEstimator(object):
         self._config = config
         self._estimator = _Estimator(estimator_name)
 
-    def get_param_grid(self) -> List[Dict[str, Any]]:
+    def get_param_grid(self) -> List[Dict[str, Union[float, int]]]:
         return self._estimator.param_grid
 
-    def set_params(self, params: Dict[str, Any]) -> None:
+    def set_params(self, params: Dict[str, Union[float, int]]) -> None:
         self._estimator.model.set_params(**params)
 
     def fit(self, x_train: pd.DataFrame, y_train: pd.Series) -> None:
@@ -93,9 +93,24 @@ class _Estimator(object):
         ),
     }
 
-    def __init__(self, name: str):
-        model, param_dict = self._estimators[name]
-        self.model = clone(model)
-        self.param_grid = []
+    def __init__(
+            self,
+            estimator_name: str,
+    ):
+        self._estimator_name = estimator_name
+        self._set_attributes()
+
+    def _set_attributes(self) -> None:
+        model, param_dict = self._estimators[self._estimator_name]
+        self._model = clone(model)
+        self._param_grid = []
         for params in product(*param_dict.values()):
-            self.param_grid.append(dict(zip(param_dict.keys(), params)))
+            self._param_grid.append(dict(zip(param_dict.keys(), params)))
+
+    @property
+    def param_grid(self) -> List[Dict[str, Union[float, int]]]:
+        return self._param_grid
+
+    @property
+    def model(self) -> Union[ElasticNet, LinearSVR, XGBRegressor]:
+        return self._model

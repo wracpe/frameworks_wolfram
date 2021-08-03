@@ -1,6 +1,21 @@
 import pandas as pd
 
 
+class WellResults(object):
+
+    def __init__(
+            self,
+            rates_liq_train: pd.Series,
+            rates_liq_test: pd.Series,
+            rates_oil_train: pd.Series,
+            rates_oil_test: pd.Series,
+    ):
+        self.rates_liq_train = rates_liq_train
+        self.rates_liq_test = rates_liq_test
+        self.rates_oil_train = rates_oil_train
+        self.rates_oil_test = rates_oil_test
+
+
 class Well(object):
     """Скважина для расчета.
     """
@@ -30,3 +45,12 @@ class Well(object):
         """
         self.well_name = well_name
         self.df = df
+        self._results = None
+
+    @property
+    def results(self) -> WellResults:
+        return self._results
+
+    @results.setter
+    def results(self, results: WellResults) -> None:
+        self._results = results
