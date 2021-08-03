@@ -1,9 +1,9 @@
 import pandas as pd
 from typing import Dict, List, Tuple, Union
 
-from src.wolfram.api.config import Config
-from src.wolfram.api.well import Well
-from src.wolfram.api.well import WellResults
+from src.wolfram.config import Config
+from src.wolfram.well import Well
+from src.wolfram.well import WellResults
 from src.wolfram._wrapper_estimator import WrapperEstimator
 from src.wolfram._wrapper_well import WrapperWell
 

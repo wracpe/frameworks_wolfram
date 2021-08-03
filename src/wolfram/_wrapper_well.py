@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error
 from typing import Dict, List, Union
 
-from src.wolfram.api.config import Config
+from src.wolfram.config import Config
 from src.wolfram._wrapper_estimator import WrapperEstimator
 
 
