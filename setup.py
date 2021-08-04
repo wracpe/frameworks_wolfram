@@ -9,8 +9,7 @@ setuptools.setup(
     classifiers=[
         "Programming Language :: Python :: 3",
     ],
-    package_dir={"": "src"},
-    packages=setuptools.find_packages(where="src"),
+    packages=setuptools.find_packages(),
     python_requires=">=3.8",
     install_requires=[
         "numpy>=1.21.0",
