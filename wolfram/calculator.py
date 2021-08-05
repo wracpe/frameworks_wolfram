@@ -1,4 +1,5 @@
 import pandas as pd
+from copy import deepcopy
 from typing import Dict, List, Tuple, Union
 
 from wolfram.config import Config
@@ -13,10 +14,10 @@ class Calculator(object):
     def __init__(
             self,
             config: Config,
-            wells_input: List[Well],
+            wells: List[Well],
     ):
         self._config = config
-        self._wells_input = wells_input
+        self._wells_input = wells
         self._run()
 
     def _run(self) -> None:
@@ -26,13 +27,13 @@ class Calculator(object):
     def _compute(self) -> None:
         self._calculator_rate_liq = _CalculatorRate(
             self._config,
-            self._wells_input,
+            deepcopy(self._wells_input),  # Расчет по копии
             name_rate_to_predict=Well.NAME_RATE_LIQ,
             name_rate_to_drop=Well.NAME_RATE_OIL,
         )
         self._calculator_rate_oil = _CalculatorRate(
             self._config,
-            self._wells_input,
+            deepcopy(self._wells_input),  # Расчет по копии
             name_rate_to_predict=Well.NAME_RATE_OIL,
             name_rate_to_drop=Well.NAME_RATE_LIQ,
         )
