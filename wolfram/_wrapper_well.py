@@ -119,7 +119,7 @@ class _Splitter(object):
 
     @property
     def pair_number(self) -> int:
-        return self.pair_number
+        return self._pair_number
 
 
 class _GridSearch(object):
