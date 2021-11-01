@@ -2,11 +2,11 @@ import pandas as pd
 from copy import deepcopy
 from typing import Dict, List, Tuple, Union
 
-from wolfram.config import Config
-from wolfram.well import Well
-from wolfram.well import WellResults
-from wolfram._wrapper_estimator import WrapperEstimator
-from wolfram._wrapper_well import WrapperWell
+from frameworks_wolfram.wolfram.config import Config
+from frameworks_wolfram.wolfram.well import Well
+from frameworks_wolfram.wolfram.well import WellResults
+from frameworks_wolfram.wolfram._wrapper_estimator import WrapperEstimator
+from frameworks_wolfram.wolfram._wrapper_well import WrapperWell
 
 
 class Calculator(object):
