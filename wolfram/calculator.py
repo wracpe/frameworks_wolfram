@@ -1,12 +1,14 @@
-import pandas as pd
 from copy import deepcopy
 from typing import Dict, List, Tuple, Union
 
+import pandas as pd
+from loguru import logger
+
+from frameworks_wolfram.wolfram._wrapper_estimator import WrapperEstimator
+from frameworks_wolfram.wolfram._wrapper_well import WrapperWell
 from frameworks_wolfram.wolfram.config import Config
 from frameworks_wolfram.wolfram.well import Well
 from frameworks_wolfram.wolfram.well import WellResults
-from frameworks_wolfram.wolfram._wrapper_estimator import WrapperEstimator
-from frameworks_wolfram.wolfram._wrapper_well import WrapperWell
 
 
 class Calculator(object):
@@ -98,10 +100,10 @@ class _CalculatorRate(object):
             data = handler.data
             train_days_number = len(data['y_train'])
             if train_days_number < self._config.forecast_days_number:
-                print(
-                    f'Скважина {well.well_name} не будет рассчитана по параметру "{self._name_rate_to_predict}",'
-                    f'так как длительность периода адаптации меньше, чем периода прогнозирования.'
-                )
+                text = f'Скважина {well.well_name} не будет рассчитана по параметру "{self._name_rate_to_predict}",'
+                f'так как длительность периода адаптации меньше, чем периода прогнозирования.'
+                logger.error(text)
+                print(text)
                 continue
             x.append(data['x_train'])
             y.append(data['y_train'])
@@ -121,6 +123,7 @@ class _CalculatorRate(object):
         self._wrapper_wells = []
         for well_name, data in self._well_data.items():
             print(well_name)
+            logger.info(f'Wolfram: well {well_name}')
             try:
                 x_train, y_train, x_test, y_test = data.values()
                 x_train[Well.NAME_RATE_BASE] = self._group_estimator.predict_train(x_train)
@@ -134,9 +137,10 @@ class _CalculatorRate(object):
                     y_test,
                 )
                 self._wrapper_wells.append(wrapper_well)
+                logger.success(f'Wolfram: success {well_name}')
             except Exception as exc:
-                print(exc)
-                continue
+                logger.exception(f'Wolfram: FAIL {well_name}', exc)
+                # continue
 
     @property
     def wrapper_wells(self) -> List[WrapperWell]:
