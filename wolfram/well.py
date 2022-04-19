@@ -9,11 +9,19 @@ class WellResults(object):
             rates_liq_test: pd.Series,
             rates_oil_train: pd.Series,
             rates_oil_test: pd.Series,
+            # rates_gas_train: pd.Series,
+            # rates_gas_test: pd.Series,
+            rates_gasfact_train: pd.Series,
+            rates_gasfact_test: pd.Series,
     ):
         self.rates_liq_train = rates_liq_train
         self.rates_liq_test = rates_liq_test
         self.rates_oil_train = rates_oil_train
         self.rates_oil_test = rates_oil_test
+        # self.rates_gas_train = rates_gas_train
+        # self.rates_gas_test = rates_gas_test
+        self.rates_gasfact_train = rates_gasfact_train
+        self.rates_gasfact_test = rates_gasfact_test
 
 
 class Well(object):
@@ -22,6 +30,8 @@ class Well(object):
     NAME_PRESSURE = 'Давление забойное'
     NAME_RATE_LIQ = 'Дебит жидкости'
     NAME_RATE_OIL = 'Дебит нефти'
+    NAME_RATE_GAS = 'Дебит газа'
+    NAME_GAZFACTOR = 'Газовый фактор рабочий (ТМ)'
     NAME_RATE_BASE = 'Дебит базовый'
 
     def __init__(
