@@ -31,27 +31,40 @@ class Calculator(object):
             self._config,
             deepcopy(self._wells_input),  # Расчет по копии
             name_rate_to_predict=Well.NAME_RATE_LIQ,
-            name_rate_to_drop=Well.NAME_RATE_OIL,
+            name_rate_to_drop_1=Well.NAME_RATE_OIL,
+            name_rate_to_drop_2=Well.NAME_RATE_GAZ,
         )
         self._calculator_rate_oil = _CalculatorRate(
             self._config,
             deepcopy(self._wells_input),  # Расчет по копии
             name_rate_to_predict=Well.NAME_RATE_OIL,
-            name_rate_to_drop=Well.NAME_RATE_LIQ,
+            name_rate_to_drop_1=Well.NAME_RATE_LIQ,
+            name_rate_to_drop_2=Well.NAME_RATE_GAZ,
+        )
+        self._calculator_rate_gaz = _CalculatorRate(
+            self._config,
+            deepcopy(self._wells_input),  # Расчет по копии
+            name_rate_to_predict=Well.NAME_RATE_GAZ,
+            name_rate_to_drop_1=Well.NAME_RATE_OIL,
+            name_rate_to_drop_2=Well.NAME_RATE_LIQ,
+
         )
 
     def _set_wells_output(self) -> None:
         self._wells_output = []
         wrapper_wells_liq = self._convert_list_to_dict(self._calculator_rate_liq.wrapper_wells)
         wrapper_wells_oil = self._convert_list_to_dict(self._calculator_rate_oil.wrapper_wells)
+        wrapper_wells_gaz = self._convert_list_to_dict(self._calculator_rate_gaz.wrapper_wells)
         wells_input = self._convert_list_to_dict(self._wells_input)
-        well_names = sorted(set(wrapper_wells_liq.keys()) & set(wrapper_wells_oil.keys()))
+        well_names = sorted(set(wrapper_wells_liq.keys()) & set(wrapper_wells_oil.keys()) & set(wrapper_wells_gaz.keys()))
         for well_name in well_names:
             well_results = WellResults(
                 rates_liq_train=wrapper_wells_liq[well_name].y_train_pred,
                 rates_liq_test=wrapper_wells_liq[well_name].y_test_pred,
                 rates_oil_train=wrapper_wells_oil[well_name].y_train_pred,
                 rates_oil_test=wrapper_wells_oil[well_name].y_test_pred,
+                rates_gaz_train=wrapper_wells_gaz[well_name].y_train_pred,
+                rates_gaz_test=wrapper_wells_gaz[well_name].y_test_pred,
             )
             well = wells_input[well_name]
             well.results = well_results
@@ -75,12 +88,14 @@ class _CalculatorRate(object):
             config: Config,
             wells: List[Well],
             name_rate_to_predict: str,
-            name_rate_to_drop: str,
+            name_rate_to_drop_1: str,
+            name_rate_to_drop_2: str,
     ):
         self._config = config
         self._wells = wells
         self._name_rate_to_predict = name_rate_to_predict
-        self._name_rate_to_drop = name_rate_to_drop
+        self._name_rate_to_drop_1 = name_rate_to_drop_1
+        self._name_rate_to_drop_2 = name_rate_to_drop_2
         self._run()
 
     def _run(self) -> None:
@@ -94,7 +109,8 @@ class _CalculatorRate(object):
             handler = _Handler(
                 self._config,
                 self._name_rate_to_predict,
-                self._name_rate_to_drop,
+                self._name_rate_to_drop_1,
+                self._name_rate_to_drop_2,
                 well.df,
             )
             data = handler.data
@@ -153,12 +169,14 @@ class _Handler(object):
             self,
             config: Config,
             rate_name_to_predict: str,
-            rate_name_to_drop: str,
+            rate_name_to_drop_1: str,
+            rate_name_to_drop_2: str,
             df: pd.DataFrame,
     ):
         self._config = config
         self._rate_name_to_predict = rate_name_to_predict
-        self._rate_name_to_drop = rate_name_to_drop
+        self._rate_name_to_drop_1 = rate_name_to_drop_1
+        self._rate_name_to_drop_2 = rate_name_to_drop_2
         self._df = df
         self._run()
 
@@ -170,7 +188,7 @@ class _Handler(object):
         self._split_train_test_x_y()
 
     def _drop_excess_rate(self) -> None:
-        self._df.drop(columns=self._rate_name_to_drop, inplace=True)
+        self._df.drop(columns=[self._rate_name_to_drop_1, self._rate_name_to_drop_2], inplace=True)
 
     def _interpolate_gaps(self) -> None:
         index = self._df.index

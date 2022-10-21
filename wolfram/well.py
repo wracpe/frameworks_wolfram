@@ -9,11 +9,15 @@ class WellResults(object):
             rates_liq_test: pd.Series,
             rates_oil_train: pd.Series,
             rates_oil_test: pd.Series,
+            rates_gaz_train: pd.Series,
+            rates_gaz_test: pd.Series
     ):
         self.rates_liq_train = rates_liq_train
         self.rates_liq_test = rates_liq_test
         self.rates_oil_train = rates_oil_train
         self.rates_oil_test = rates_oil_test
+        self.rates_gaz_train = rates_gaz_train
+        self.rates_gaz_test = rates_gaz_test
 
 
 class Well(object):
@@ -23,6 +27,7 @@ class Well(object):
     NAME_RATE_LIQ = 'Дебит жидкости'
     NAME_RATE_OIL = 'Дебит нефти'
     NAME_RATE_BASE = 'Дебит базовый'
+    NAME_RATE_GAZ = 'Дебит газа'
 
     def __init__(
             self,
@@ -35,10 +40,11 @@ class Well(object):
             well_name: Номер скважины.
                 Можно задать фиктивный номер, однако желательно указать реальный OIS номер.
             df: Данные скважины.
-                Таблица должна содержать 3 последовательных столбца:
+                Таблица должна содержать 4 последовательных столбца:
                     Давление забойное,
                     Дебит жидкости,
-                    Дебит нефти.
+                    Дебит нефти,
+                    Дебит газа.
                 Значения указанных параметров в таблице могут быть в любых единицах измерения.
                 Результат расчета будет представлен в тех же единицах измерения.
 
