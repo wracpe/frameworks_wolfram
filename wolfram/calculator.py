@@ -32,19 +32,19 @@ class Calculator(object):
             deepcopy(self._wells_input),  # Расчет по копии
             name_rate_to_predict=Well.NAME_RATE_LIQ,
             name_rate_to_drop_1=Well.NAME_RATE_OIL,
-            name_rate_to_drop_2=Well.NAME_RATE_GAZ,
+            name_rate_to_drop_2=Well.NAME_RATE_GAS,
         )
         self._calculator_rate_oil = _CalculatorRate(
             self._config,
             deepcopy(self._wells_input),  # Расчет по копии
             name_rate_to_predict=Well.NAME_RATE_OIL,
             name_rate_to_drop_1=Well.NAME_RATE_LIQ,
-            name_rate_to_drop_2=Well.NAME_RATE_GAZ,
+            name_rate_to_drop_2=Well.NAME_RATE_GAS,
         )
-        self._calculator_rate_gaz = _CalculatorRate(
+        self._calculator_rate_gas = _CalculatorRate(
             self._config,
             deepcopy(self._wells_input),  # Расчет по копии
-            name_rate_to_predict=Well.NAME_RATE_GAZ,
+            name_rate_to_predict=Well.NAME_RATE_GAS,
             name_rate_to_drop_1=Well.NAME_RATE_OIL,
             name_rate_to_drop_2=Well.NAME_RATE_LIQ,
 
@@ -54,17 +54,17 @@ class Calculator(object):
         self._wells_output = []
         wrapper_wells_liq = self._convert_list_to_dict(self._calculator_rate_liq.wrapper_wells)
         wrapper_wells_oil = self._convert_list_to_dict(self._calculator_rate_oil.wrapper_wells)
-        wrapper_wells_gaz = self._convert_list_to_dict(self._calculator_rate_gaz.wrapper_wells)
+        wrapper_wells_gas = self._convert_list_to_dict(self._calculator_rate_gas.wrapper_wells)
         wells_input = self._convert_list_to_dict(self._wells_input)
-        well_names = sorted(set(wrapper_wells_liq.keys()) & set(wrapper_wells_oil.keys()) & set(wrapper_wells_gaz.keys()))
+        well_names = sorted(set(wrapper_wells_liq.keys()) & set(wrapper_wells_oil.keys()) & set(wrapper_wells_gas.keys()))
         for well_name in well_names:
             well_results = WellResults(
                 rates_liq_train=wrapper_wells_liq[well_name].y_train_pred,
                 rates_liq_test=wrapper_wells_liq[well_name].y_test_pred,
                 rates_oil_train=wrapper_wells_oil[well_name].y_train_pred,
                 rates_oil_test=wrapper_wells_oil[well_name].y_test_pred,
-                rates_gaz_train=wrapper_wells_gaz[well_name].y_train_pred,
-                rates_gaz_test=wrapper_wells_gaz[well_name].y_test_pred,
+                rates_gas_train=wrapper_wells_gas[well_name].y_train_pred,
+                rates_gas_test=wrapper_wells_gas[well_name].y_test_pred,
             )
             well = wells_input[well_name]
             well.results = well_results

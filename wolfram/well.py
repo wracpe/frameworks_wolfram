@@ -9,15 +9,15 @@ class WellResults(object):
             rates_liq_test: pd.Series,
             rates_oil_train: pd.Series,
             rates_oil_test: pd.Series,
-            rates_gaz_train: pd.Series,
-            rates_gaz_test: pd.Series
+            rates_gas_train: pd.Series,
+            rates_gas_test: pd.Series
     ):
         self.rates_liq_train = rates_liq_train
         self.rates_liq_test = rates_liq_test
         self.rates_oil_train = rates_oil_train
         self.rates_oil_test = rates_oil_test
-        self.rates_gaz_train = rates_gaz_train
-        self.rates_gaz_test = rates_gaz_test
+        self.rates_gas_train = rates_gas_train
+        self.rates_gas_test = rates_gas_test
 
 
 class Well(object):
@@ -27,7 +27,7 @@ class Well(object):
     NAME_RATE_LIQ = 'Дебит жидкости'
     NAME_RATE_OIL = 'Дебит нефти'
     NAME_RATE_BASE = 'Дебит базовый'
-    NAME_RATE_GAZ = 'Дебит газа'
+    NAME_RATE_GAS = 'Дебит газа'
 
     def __init__(
             self,
