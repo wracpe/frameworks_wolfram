@@ -8,6 +8,7 @@ from sklearn.linear_model import ElasticNet
 from sklearn.svm import LinearSVR
 from typing import Dict, List, Union
 from xgboost import XGBRegressor
+from dateutil import relativedelta
 
 from frameworks_wolfram.wolfram.config import Config
 
@@ -51,7 +52,7 @@ class WrapperEstimator(object):
             for ws in self._config.window_sizes:
                 param_name = f'{y_train.name}_{ws}'
                 window = y_stat.dropna().iloc[-ws:]
-                date_next = date + datetime.timedelta(days=1)
+                date_next = date + relativedelta.relativedelta(months=1)
                 x_test.loc[date_next, f'{param_name}_median'] = window.median()
                 for q in self._config.quantiles:
                     x_test.loc[date_next, f'{param_name}_quantile_{q}'] = window.quantile(q)
