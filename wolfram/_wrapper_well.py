@@ -142,6 +142,7 @@ class _GridSearch(object):
         for params in self._wrapper_estimator.get_param_grid():
             error = 0
             for pair in self._splitter.train_test_pairs:
+                # pair['x_test'] = pair['x_test'].dropna()
                 self._wrapper_estimator.set_params(params)
                 self._wrapper_estimator.fit(pair['x_train'], pair['y_train'])
                 y_pred = self._wrapper_estimator.predict_test(pair['y_train'], pair['x_test'])

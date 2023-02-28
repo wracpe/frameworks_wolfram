@@ -41,6 +41,7 @@ class WrapperEstimator(object):
         return y_train
 
     def predict_test(self, y_train: pd.Series, x_test: pd.DataFrame) -> pd.Series:
+        # x_test = x_test.dropna()
         dates_test = x_test.index
         date_last = dates_test[-1]
         y_test = pd.Series(index=dates_test)
