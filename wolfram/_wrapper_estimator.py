@@ -63,7 +63,7 @@ class _Estimator(object):
     _estimators = {
         'ela': (
             ElasticNet(
-                max_iter=1e5,
+                max_iter=100000,
                 random_state=1,
             ),
             {
@@ -73,7 +73,7 @@ class _Estimator(object):
         ),
         'svr': (
             LinearSVR(
-                max_iter=1e5,
+                max_iter=100000,
                 random_state=1,
             ),
             {
